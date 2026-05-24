@@ -1,0 +1,249 @@
+# 🌍 Green Grid Compass API
+
+## EU-Stromdaten abrufen und visualisieren
+
+---
+
+## ✅ Projektinitialisierung
+
+- ✅ **GitHub & Infrastruktur:** Repository funktioniert, Education-Account beantragt
+- ✅ **Thema durchdacht:** Vollständige Konzeptanalyse
+
+---
+
+## 📖 Projektbeschreibung
+
+### Kurzfassung
+Ein System/API-Projekt, das aktuelle und historische **Stromdaten aus Europa** sammelt, aufbereitet und grafisch darstellt. Ziel: **CO2-Intensität, Erzeugungsmix, Preise und Netzflüsse** transparent visualisieren.
+
+### Datentypen 📊
+- Erzeugungsmix (Wind, Solar, Fossil, Kernenergie)
+- Verbrauch nach Region/Land
+- CO2-Intensität
+- Marktpreise
+- Grenzüberschreitende Flüsse
+- Prognosen & Forecasts
+
+### Mögliche Datenquellen 🔌
+- **ENTSO-E Transparency Platform** (offizielle Standard-Quelle)
+- **electricityMap API** (CO2-Daten)
+- **Open Power System Data (OPSD)** (historische Zeitreihen)
+- Nationale TSOs (TenneT, Amprion, 50Hertz, RTE, Red Eléctrica)
+- Energiebörsen (Nord Pool, EPEX SPOT)
+- EU Open Data & Eurostat
+
+### Technologie-Stack 🛠️
+- **Backend:** ETL-Pipeline mit Python/Node.js
+- **Datenbank:** TimescaleDB oder InfluxDB
+- **API:** REST/GraphQL (FastAPI/Express)
+- **Caching:** Redis
+- **Frontend:** React + D3/Plotly + Leaflet
+- **Auth & Throttling:** API Gateway mit Rate-Limiting
+
+### Features & UX 🎯
+- Länder- & Zeitbereichs-Filter
+- Vergleichsmodus (2 Länder/Zeiträume)
+- Download (CSV/JSON)
+- Echtzeit-Alerts (hoher CO2-Wert)
+- Embeddable Widgets
+
+---
+
+## 📋 Arbeitsschritte
+
+### 1️⃣ Scope & Ziele ✅
+Siehe oben — vollständige Zieldefinition und Anforderungsanalyse.
+
+### 2️⃣ Datenquellen identifizieren ✅
+
+#### Empfohlene Datenquellen (priorisiert)
+
+| Quelle | Typ | Format | Auth | Besonderheiten |
+|--------|-----|--------|------|----------------|
+| **ENTSO-E** | Erzeugung, Verbrauch, Flows | REST/XML | API-Token | 🏆 Standard, umfassend |
+| **electricityMap** | CO2, Erzeugungsmix | JSON | API-Key | Einfacher Einstieg |
+| **OPSD** | Historische Zeitreihen | CSV | Keine | Bereinigte Daten, ideal für Analyse |
+| **Nationale TSOs** | Länder-spezifisch | Variabel | Variabel | Live-Feeds |
+| **Nord Pool** | Marktpreise | API | Anmeldung | Day-ahead & Intraday |
+| **Eurostat/EU** | Statistiken | CSV/API | Keine | Metadaten & Infrastruktur |
+| **Drittanbieter** | Aggregiert | JSON | Variabel | Entsoe-py, electricitydata.be |
+
+#### Wichtige Hinweise
+- **Formate:** XML, JSON, CSV; Zeitreihen meist hourly/15min
+- **Auth & Limits:** API-Keys erforderlich; Rate-Limits beachten
+- **Datenqualität:** Lücken/NaNs, Zeitzonen (UTC ↔ lokal), Revisionen (Backfills)
+
+---
+
+### 3️⃣ Architektur skizzieren ✅
+
+#### Ziel
+API + Dashboard für zuverlässiges Sammeln, Speichern und Visualisieren von EU-Stromzeitreihen.
+
+#### Architektur-Komponenten
+
+```
+📥 External Sources (ENTSO-E, electricityMap, OPSD)
+    ↓
+⚙️ Ingest Workers (scheduled jobs, retry, backfill)
+    ↓
+🔄 ETL / Normalizer (XML/JSON/CSV → einheitliches Schema)
+    ↓
+💾 TimescaleDB / InfluxDB (Zeitreihen-Speicherung)
+    ↓
+🔗 Backend API (FastAPI/Express) + Cache (Redis)
+    ↓
+🎨 Frontend (React + D3/Plotly + Leaflet)
+    ↓
+🔐 Auth & API Gateway (Rate-limiting, API Keys)
+```
+
+#### Kernkomponenten im Detail
+
+| Komponente | Beschreibung |
+|-----------|-------------|
+| **Daten-Ingest (Fetcher)** | Scheduled jobs (Airflow/Celery) für ENTSO-E, electricityMap, TSOs; Retry-Logik, Backfill |
+| **ETL/Normalisierung** | Parser für alle Formate → einheitliches Schema (timestamp UTC, zone, metric, value) |
+| **Timeseries DB** | TimescaleDB (Postgres) oder InfluxDB für effiziente Aggregationen & Downsampling |
+| **Backend API** | REST/GraphQL Endpoints: `/generation`, `/consumption`, `/co2`, `/prices`, `/country/{id}` |
+| **Cache/Queue** | Redis für Caching, RabbitMQ/Redis Queue für async Tasks |
+| **Workers** | Celery/RQ für Transforms, Forecasting, Aggregations |
+| **Frontend** | React + Plotly/D3 + Leaflet für interaktive Charts & Widgets |
+| **Auth & Throttling** | API Gateway (NGINX/Traefik/Kong) — Rate-limits, API Keys |
+| **Monitoring** | Prometheus/Grafana, ELK/Loki, Sentry |
+
+#### Database-Schema
+```sql
+Table measurements:
+  - id (PK)
+  - timestamp_utc (indexed)
+  - zone / country
+  - metric (generation, consumption, co2, price)
+  - value (numeric)
+  - source (ENTSO-E, electricityMap, etc.)
+  - quality_flag (raw, validated, revised)
+```
+
+#### Nicht-funktionale Anforderungen
+- **Latenz:** Near-Realtime (abhängig von Quelle)
+- **Skalierbarkeit:** Horizontal für API + Workers
+- **Robustheit:** Retries, Schema-Validierung, Datenlücken-Alerts
+
+---
+
+### 4️⃣ Visualisierungstypen auswählen ✅
+
+#### Alle Visualisierungsoptionen
+
+| Typ | Use-Case | Library |
+|-----|----------|---------|
+| **Zeitreihen (Line/Area)** | Verlauf Erzeugung/Verbrauch/CO2 | D3 / Plotly / Chart.js |
+| **Stacked Area** | Erzeugungsmix-Anteile über Zeit | Plotly / D3 |
+| **Donut / Pie** | Momentaufnahme Energiemix | Plotly |
+| **Heatmap** | Tages-/Wochenmuster | D3 / Plotly |
+| **Choropleth-Karte** | Länderübersicht mit Farbcodierung | Leaflet / Mapbox |
+| **KPI-Tiles** | Live-Werte (CO2, % erneuerbar, Preis) | React Components |
+| **Sankey-Diagramm** | Energieflüsse Erzeugung → Verbrauch | D3 / Plotly |
+| **Histogram** | Preisverteilung, CO2-Risiken | Plotly |
+| **Interactive Comparison** | 2 Länder/Zeiträume, synchronized Pan/Zoom | D3 / Custom React |
+
+#### MVP-Prioritäten (Phase 1)
+1. 🥇 **Stacked Area Chart** — Erzeugungsmix über Zeit (DONE ✅)
+2. 🥈 **KPI-Tiles** — Live-Status-Übersicht
+3. 🥉 **Choropleth-Karte** — Ländervergleich
+4. 4️⃣ **Heatmap** — Lastmuster erkennen
+
+---
+
+### 5️⃣ Prototyp & Implementierung ✅
+
+#### Erstellte Artefakte
+
+| Datei | Status | Beschreibung |
+|-------|--------|-------------|
+| `data/sample_generation.csv` | ✅ | Beispieldaten (8h DE Erzeugungsmix) |
+| `prototype/plot_generation.py` | ✅ | Python-Plotly Script |
+| `prototype/requirements.txt` | ✅ | Dependencies |
+| `prototype/stacked_area.html` | ✅ | 📊 Interaktives Output-Chart |
+| `PROGRESS.md` | ✅ | Ausführliche Projekt-Dokumentation |
+
+#### Test & Ausführung
+```powershell
+C:\Users\Seli6\miniconda3\python.exe -m pip install -r prototype\requirements.txt
+C:\Users\Seli6\miniconda3\python.exe prototype\plot_generation.py
+# → Öffnet: prototype\stacked_area.html (interaktiv im Browser)
+```
+
+**Ergebnis:** ✅ Funktionsfähiger Prototyp mit Zoom, Pan, Legenden-Toggle
+
+---
+
+## 🚀 Noch offene Aufgaben
+
+ - [x] Quellen manuell recherchieren und verlinken
+ - [x] Ideen für Praxisbeispiele sammeln
+ - [ ] Phase 2: Live-Fetcher (ENTSO-E API)
+ - [ ] Phase 3: FastAPI-Backend
+ - [ ] Phase 4: React-Frontend-Dashboard
+ - [ ] Phase 5: DevOps & Deployment
+
+--- 
+### Ideen für Praxisbeispiele
+
+#### Zielgruppen & Use‑Cases
+
+**Netzbetreiber / TSO**
+
+- **Echtzeit‑Netzüberwachung:** Erkennen von Engpässen und grenzüberschreitenden Flüssen. (Feature: Flow‑Map, Alerts)
+- **Dispatch‑Support:** Visualisierte Erzeugungs‑ und Nachfrageprognosen zur Einsatzplanung. (Feature: Forecasts, Scenario compare)
+- **KPI:** Anzahl vermiedener Ausgleichsenergiekosten, Reduktion von Engpass‑Ereignissen.
+
+**Energieversorger / Aggregatoren**
+
+- **Portfolio‑Monitoring:** Erzeugungsmix + CO2 für Anlagenportfolios; Reporting für Kunden. (Feature: KPI‑Tiles, Exports)
+- **Handels‑Signals:** Tageszeit‑Preise & CO2‑Fenster zur Optimierung von Einspeisung/Handel.
+- **KPI:** Mehrerlöse durch zeitliche Verschiebung, CO2‑Intensität pro MWh.
+
+**E‑Mobility / Ladeinfrastruktur**
+
+- **Smart Charging Scheduler:** Ladezeitpunkte in niedriger CO2‑Intensität/Preisfenster planen. (API für Lade‑EMS)
+- **KPI:** % Ladevorgänge in günstigen/low‑CO2‑Fenstern.
+
+**Industrie / Prosumer / Gebäudeautomation**
+
+- **Demand‑Response & Flexibility Ops:** Lastverschiebung anhand Grid‑Signals/Preisen. (Integrationen: OpenADR / MQTT)
+- **KPI:** Peak‑Shaving, Einsparung von Lastspitzenkosten.
+
+**Marktplätze / Trader**
+
+- **Intraday/Day‑ahead Analyse:** Visualisierung von Preis- und Erzeugungsrisiken; Alerting auf arbitrage‑Chancen.
+- **KPI:** Trefferquote von Handels‑Signalen, Rendite pro Trade.
+
+**Forschung & Bildung / Behörden**
+
+- **Historische Analysen & Studien:** Backtesting von Szenarien, Policy‑Impact‑Analysen. (Bulk CSV/OPSD links)
+- **KPI:** Reproduzierbarkeit, Zeit für Analysen reduziert.
+
+**Verbraucher‑Apps / Medien / NGOs**
+
+- **Public Dashboard / Embeddable Widgets:** Ländervergleiche, CO2‑Ticker fürs Magazin oder Website.
+- **KPI:** Nutzer‑Engagement, Shares, Reduktion von CO2‑Awareness‑Lücke.
+
+---
+
+## 📚 Ressourcen & Links
+
+- Green Grid Compass: https://www.greengrid-compass.eu/ 
+
+*Platzhalter für externe Ressourcen:*
+- ENTSO-E API: https://transparency.entsoe.eu/
+- electricityMap: https://api.electricitymap.org/
+- OPSD: https://data.open-power-system-data.org/
+- Leaflet: https://leafletjs.com/
+- Plotly: https://plotly.com/python/
+
+---
+
+**Status:** Phase 1 ✅ **100%** abgeschlossen | **Nächste Phase:** Live-Datenbeschaffung 🚀
+
+
