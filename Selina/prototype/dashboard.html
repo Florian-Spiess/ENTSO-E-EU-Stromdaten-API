@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Green Grid Compass Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fb; color: #222; }
+    header { background: #1f3864; color: white; padding: 20px; text-align: center; }
+    main { padding: 20px; max-width: 1300px; margin: auto; }
+    .panel { background: white; border-radius: 12px; box-shadow: 0 12px 25px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 20px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    label { display: block; margin-bottom: 6px; font-weight: 600; }
+    input, select, button { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; }
+    button { cursor: pointer; background: #1f3864; color: white; border: none; font-weight: 700; }
+    button:hover { background: #29487d; }
+    .status { margin-top: 12px; font-size: 14px; color: #444; }
+    .status.error { color: #b91c1c; }
+    .charts { display: grid; gap: 20px; grid-template-columns: 1fr; }
+    .chart-card { min-height: 450px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 10px 12px; border: 1px solid #e2e8f0; }
+    th { background: #edf2f7; text-align: left; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .footer { text-align: center; color: #6b7280; margin-top: 24px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Green Grid Compass Dashboard</h1>
+    <p>Phase 4: Frontend-Prototyp für Live-Stromdaten aus dem Phase-3-Backend.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Dashboard-Konfiguration</h2>
+      <div class="grid">
+        <div>
+          <label for="backendUrl">Backend-URL</label>
+          <input id="backendUrl" type="text" value="http://localhost:8000" />
+        </div>
+        <div>
+          <label for="apiKey">Backend API-Key</label>
+          <input id="apiKey" type="password" placeholder="Optional, falls aktiviert" />
+        </div>
+        <div>
+          <label for="zone">Zone</label>
+          <input id="zone" type="text" value="DE" />
+        </div>
+        <div>
+          <label for="start">Startzeitpunkt</label>
+          <input id="start" type="datetime-local" value="2026-06-01T00:00" />
+        </div>
+        <div>
+          <label for="end">Endzeitpunkt</label>
+          <input id="end" type="datetime-local" value="2026-06-01T23:00" />
+        </div>
+      </div>
+      <div style="margin-top: 16px; display:grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+        <button id="loadData">Daten laden</button>
+        <button id="loadUnified">Unified-Daten abrufen</button>
+        <button id="toggleRefresh">Auto-Refresh starten</button>
+      </div>
+      <div class="grid" style="margin-top: 16px;">
+        <div>
+          <label for="refreshInterval">Refresh-Intervall (Sekunden)</label>
+          <input id="refreshInterval" type="number" min="10" value="60" />
+        </div>
+        <div>
+          <label>Unterstützte GGC-Metriken</label>
+          <div id="metricList" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; min-height: 42px; background: #f8fafc;"></div>
+        </div>
+      </div>
+      <div id="status" class="status">Bereit. Backend muss erreichbar sein.</div>
+    </section>
+
+    <section class="panel charts">
+      <div class="chart-card" id="co2Chart"></div>
+      <div class="chart-card" id="renewableChart"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Rohdaten & Unified-Preview</h2>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+        <div><button id="loadCo2Table">CO2-Rohdaten laden</button></div>
+        <div><button id="loadRenewableTable">Erneuerbarer Anteil laden</button></div>
+      </div>
+      <div id="dataTable" style="overflow-x:auto; margin-top: 16px;"></div>
+    </section>
+  </main>
+  <div class="footer">Öffne diese Datei lokal im Browser. Backend und API-Key müssen separat gestartet / gesetzt werden.</div>
+
+  <script>
+    const backendUrlInput = document.getElementById('backendUrl');
+    const apiKeyInput = document.getElementById('apiKey');
+    const zoneInput = document.getElementById('zone');
+    const startInput = document.getElementById('start');
+    const endInput = document.getElementById('end');
+    const status = document.getElementById('status');
+    const co2Chart = document.getElementById('co2Chart');
+    const renewableChart = document.getElementById('renewableChart');
+    const dataTable = document.getElementById('dataTable');
+    const metricList = document.getElementById('metricList');
+    const refreshInterval = document.getElementById('refreshInterval');
+    const toggleRefresh = document.getElementById('toggleRefresh');
+    const loadDataBtn = document.getElementById('loadData');
+    const loadUnifiedBtn = document.getElementById('loadUnified');
+    const loadCo2Table = document.getElementById('loadCo2Table');
+    const loadRenewableTable = document.getElementById('loadRenewableTable');
+
+    function formatIsoLocal(value) {
+      if (!value) return ''; 
+      const dt = new Date(value);
+      return dt.toISOString();
+    }
+
+    function getHeaders() {
+      const apiKey = apiKeyInput.value.trim();
+      const headers = { 'Content-Type': 'application/json' };
+      if (apiKey) headers['x-api-key'] = apiKey;
+      return headers;
+    }
+
+    function updateStatus(message, isError = false) {
+      status.textContent = message;
+      status.className = isError ? 'status error' : 'status';
+    }
+
+    async function fetchApi(path) {
+      const url = backendUrlInput.value.replace(/\/$/, '') + path;
+      const response = await fetch(url, { headers: getHeaders() });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+      return response.json();
+    }
+
+    function normalizeSeries(records) {
+      return records
+        .map(row => ({ x: new Date(row.timestamp), y: Number(row.value) }))
+        .sort((a, b) => a.x - b.x);
+    }
+
+    async function loadMetricList() {
+      try {
+        const metrics = await fetchApi('/ggc/metrics');
+        metricList.innerHTML = metrics.map(item => item.metric).join(', ');
+      } catch (error) {
+        metricList.innerHTML = 'Nicht verfügbar';
+      }
+    }
+
+    function buildTable(records) {
+      if (!records || !records.length) {
+        return '<p>Keine Rohdaten vorhanden.</p>';
+      }
+      const columns = ['timestamp', 'zone', 'metric', 'value', 'unit'];
+      const header = `<tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>`;
+      const rows = records.slice(0, 50).map(record => `<tr>${columns.map(col => `<td>${record[col] ?? ''}</td>`).join('')}</tr>`).join('');
+      return `<table>${header}${rows}</table>`;
+    }
+
+    async function loadRawData(metric) {
+      try {
+        updateStatus(`Lade Rohdaten für ${metric}...`);
+        const zone = zoneInput.value.trim();
+        const start = formatIsoLocal(startInput.value);
+        const end = formatIsoLocal(endInput.value);
+        const path = `/ggc/${metric}?zone=${encodeURIComponent(zone)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+        const data = await fetchApi(path);
+        dataTable.innerHTML = buildTable(data);
+        updateStatus(`Rohdaten geladen: ${data.length} Datensätze für ${metric}.`);
+      } catch (error) {
+        dataTable.innerHTML = '';
+        updateStatus(error.message, true);
+      }
+    }
+
+    let refreshTimer = null;
+
+    function setAutoRefresh(enabled) {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+      if (enabled) {
+        const intervalSeconds = Number(refreshInterval.value) || 60;
+        refreshTimer = setInterval(loadAllData, intervalSeconds * 1000);
+        toggleRefresh.textContent = 'Auto-Refresh stoppen';
+        updateStatus(`Auto-Refresh aktiv (${intervalSeconds}s).`);
+      } else {
+        toggleRefresh.textContent = 'Auto-Refresh starten';
+        updateStatus('Auto-Refresh gestoppt.');
+      }
+    }
+
+    async function loadMetric(metric, targetDiv, title, yLabel) {
+      updateStatus(`Lade ${title}...`);
+      const zone = zoneInput.value.trim();
+      const start = formatIsoLocal(startInput.value);
+      const end = formatIsoLocal(endInput.value);
+      const path = `/ggc/${metric}?zone=${encodeURIComponent(zone)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+      const data = await fetchApi(path);
+      const series = normalizeSeries(data);
+      if (!series.length) {
+        targetDiv.innerHTML = `<p>Keine Daten für ${title} gefunden.</p>`;
+        return;
+      }
+      Plotly.newPlot(targetDiv, [{ x: series.map(r => r.x), y: series.map(r => r.y), type: 'scatter', mode: 'lines+markers', line: { shape: 'spline', color: '#1f3864' } }], {
+        title,
+        xaxis: { title: 'Zeit' },
+        yaxis: { title: yLabel },
+        margin: { t: 50, l: 60, r: 20, b: 50 },
+      });
+    }
+
+    async function loadAllData() {
+      try {
+        await loadMetric('co2_intensity', co2Chart, 'CO2-Intensität', 'gCO2eq/kWh');
+        await loadMetric('renewable_share', renewableChart, 'Erneuerbarer Anteil', '%');
+        updateStatus('Daten erfolgreich geladen.');
+      } catch (error) {
+        updateStatus(error.message, true);
+      }
+    }
+
+    async function loadUnifiedData() {
+      try {
+        updateStatus('Lade vereinheitlichte Daten...');
+        const zone = zoneInput.value.trim();
+        const start = formatIsoLocal(startInput.value);
+        const end = formatIsoLocal(endInput.value);
+        const path = `/unified?zone=${encodeURIComponent(zone)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+        const data = await fetchApi(path);
+        updateStatus(`Unified-Daten geladen: ${data.length} Datensätze.`);
+      } catch (error) {
+        updateStatus(error.message, true);
+      }
+    }
+
+    loadDataBtn.addEventListener('click', loadAllData);
+    loadUnifiedBtn.addEventListener('click', loadUnifiedData);
+    loadCo2Table.addEventListener('click', () => loadRawData('co2_intensity'));
+    loadRenewableTable.addEventListener('click', () => loadRawData('renewable_share'));
+    toggleRefresh.addEventListener('click', () => setAutoRefresh(!refreshTimer));
+
+    loadMetricList();
+  </script>
+</body>
+</html>

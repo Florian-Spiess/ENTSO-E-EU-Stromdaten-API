@@ -182,10 +182,13 @@ C:\Users\Seli6\miniconda3\python.exe prototype\plot_generation.py
 
  - [x] Quellen manuell recherchieren und verlinken
  - [x] Ideen für Praxisbeispiele sammeln
- - [ ] Phase 2: Live-Fetcher (ENTSO-E API)
- - [ ] Phase 3: FastAPI-Backend
+ - [x] Phase 2: Live-Fetcher (ENTSO-E API)
+ - [x] Phase 3: FastAPI-Backend
  - [ ] Phase 4: React-Frontend-Dashboard
  - [ ] Phase 5: DevOps & Deployment
+   - Optional: Caching (Redis) und persistente Timeseries-Datenbank hinzufügen
+   - Optional: Alerting / KPI-Endpunkte für CO2-Spitzen und erneuerbare Anteile ergänzen
+   - Optional: Production-Hardening: HTTPS, Logging, Monitoring
 
 --- 
 ### Ideen für Praxisbeispiele
@@ -244,6 +247,5 @@ C:\Users\Seli6\miniconda3\python.exe prototype\plot_generation.py
 
 ---
 
-**Status:** Phase 1 ✅ **100%** abgeschlossen | **Nächste Phase:** Live-Datenbeschaffung 🚀
-
+**Status:** Phase 3 ✅ **abgeschlossen** | **Nächste Phase:** React-Frontend-Dashboard 🚀
 
