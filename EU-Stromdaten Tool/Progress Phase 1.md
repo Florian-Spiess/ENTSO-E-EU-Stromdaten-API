@@ -8,7 +8,7 @@
 
 **Ziel:** API + Dashboard zur Abfrage und Visualisierung von EU-Stromdaten (Erzeugung, Verbrauch, CO2-Intensität, Marktpreise).
 
-**Team:** Selina (Uni Weihenstephan, 6. Semester)
+**Team:** EU-Stromdaten Tool (Uni Weihenstephan, 6. Semester)
 
 ---
 

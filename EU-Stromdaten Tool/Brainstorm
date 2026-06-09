@@ -178,17 +178,31 @@ C:\Users\Seli6\miniconda3\python.exe prototype\plot_generation.py
 
 ---
 
-## 🚀 Noch offene Aufgaben
+## 🚀 Nächste Schritte nach Priorisierung
 
- - [x] Quellen manuell recherchieren und verlinken
- - [x] Ideen für Praxisbeispiele sammeln
- - [x] Phase 2: Live-Fetcher (ENTSO-E API)
- - [x] Phase 3: FastAPI-Backend
- - [ ] Phase 4: React-Frontend-Dashboard
- - [ ] Phase 5: DevOps & Deployment
-   - Optional: Caching (Redis) und persistente Timeseries-Datenbank hinzufügen
-   - Optional: Alerting / KPI-Endpunkte für CO2-Spitzen und erneuerbare Anteile ergänzen
-   - Optional: Production-Hardening: HTTPS, Logging, Monitoring
+### Priorität 1 – Für einen nutzbaren MVP
+- [x] Quellen manuell recherchieren und verlinken
+- [x] Ideen für Praxisbeispiele sammeln
+- [x] Phase 2: Live-Fetcher (ENTSO-E API)
+- [x] Phase 3: FastAPI-Backend
+- [x] Phase 4: React-Frontend-Dashboard
+- [x] Phase 5: DevOps & Deployment
+  - [x] Frontend-Build-Prüfungen automatisieren
+  - [x] einfache Deployment- und Release-Strategie definieren
+  - [x] Backend-URL und API-Key-Konfiguration für Produktion absichern
+  - [x] HTTPS, Secrets und Umgebungsvariablen im Deployment vorbereiten
+
+### Priorität 2 – Für einen robusteren Betrieb
+- [ ] Monitoring und Logging für Backend und Frontend einführen
+- [ ] Fehler-Tracking und Health-Checks ausbauen
+- [ ] Caching-Strategie für häufige Abfragen prüfen und einführen
+- [ ] Alerting für CO2-Spitzen oder starke Abweichungen ergänzen
+
+### Priorität 3 – Für einen langfristigen Ausbau
+- [ ] Persistente Timeseries-Datenbank einführen
+- [ ] Redis oder ähnliche Caching-Lösung für skalierte Abfragen etablieren
+- [ ] Weitere KPI-Endpunkte und Dashboard-Widgets ergänzen
+- [ ] Exportfunktionen (CSV/JSON) und erweiterte Vergleichsmodi erweitern
 
 --- 
 ### Ideen für Praxisbeispiele
@@ -247,5 +261,5 @@ C:\Users\Seli6\miniconda3\python.exe prototype\plot_generation.py
 
 ---
 
-**Status:** Phase 3 ✅ **abgeschlossen** | **Nächste Phase:** React-Frontend-Dashboard 🚀
+**Status:** Priorität 1 abgeschlossen
 

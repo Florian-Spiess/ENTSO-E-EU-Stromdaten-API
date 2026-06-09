@@ -7,6 +7,7 @@ import sys
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header
 from fastapi.responses import JSONResponse
 import pandas as pd
+from dotenv import load_dotenv
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -15,9 +16,11 @@ from slowapi.util import get_remote_address
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import ggc_fetcher
-import entsoe_fetcher
-import phase2_data_pipeline
+load_dotenv(HERE / ".env")
+
+import ggc_data_fetcher as ggc_fetcher
+import entsoe_data_fetcher as entsoe_fetcher
+import unified_data_pipeline as phase2_data_pipeline
 
 app = FastAPI(
     title="Green Grid Compass Phase 3 API",

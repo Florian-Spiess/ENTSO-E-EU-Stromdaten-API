@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "environmentVariables": {
+    "VITE_BACKEND_URL": "https://your-backend.example.com"
+  }
+}

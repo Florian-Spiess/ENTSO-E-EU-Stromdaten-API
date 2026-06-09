@@ -7,7 +7,7 @@ from pathlib import Path
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    script = root / "prototype" / "phase2_data_pipeline.py"
+    script = root / "prototype" / "unified_data_pipeline.py"
     if not script.exists():
         print(f"Fehler: {script} wurde nicht gefunden.")
         return 1

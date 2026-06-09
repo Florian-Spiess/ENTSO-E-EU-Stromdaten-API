@@ -10,8 +10,8 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import ggc_fetcher
-import entsoe_fetcher
+import ggc_data_fetcher as ggc_fetcher
+import entsoe_data_fetcher as entsoe_fetcher
 
 DEFAULT_ZONE = os.getenv("GGC_API_ZONE", "DE")
 DEFAULT_ENTSO_ZONE = os.getenv("ENTSOE_ZONE", "10Y1001A1001A63L")

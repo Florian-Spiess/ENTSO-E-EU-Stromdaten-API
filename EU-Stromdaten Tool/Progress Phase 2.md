@@ -6,13 +6,13 @@
 Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetchers mit Green Grid Compass als primäre Quelle und ENTSO-E als Fallback für zusätzliche Daten, die GGC nicht liefert. Das Ziel ist ein wiederverwendbarer Python-Prototyp, der die Green Grid Compass-/TraXes-API nutzt und ENTSO-E für ergänzende Metriken integriert.
 
 ## Umsetzung
-- Neue Datei erstellt: `Selina/prototype/ggc_fetcher.py`
-- Bestehendes Fallback-Skript: `Selina/prototype/entsoe_fetcher.py`
+- Neue Datei erstellt: `EU-Stromdaten Tool/prototype/ggc_data_fetcher.py`
+- Bestehendes Fallback-Skript: `EU-Stromdaten Tool/prototype/entsoe_data_fetcher.py`
 - Die Implementierung basiert auf:
   - Green Grid Compass (TraXes) API als Primärquelle
   - ENTSO-E API als sekundäre Quelle für zusätzliche Stromdaten
   - JSON-Parsing für GGC-Antworten
-  - CSV-Ausgabe in `Selina/data/ggc_co2_intensity_live_sample.csv`
+  - CSV-Ausgabe in `EU-Stromdaten Tool/data/ggc_co2_intensity_live_sample.csv`
 
 ## Was wurde realisiert
 - `fetch_ggc_data(...)` baut den API-Request an Green Grid Compass auf
@@ -42,15 +42,15 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
    > Hinweis: Der ENTSO-E-Token ist vorhanden und sollte lokal als Umgebungsvariable gesetzt werden. Er darf nicht in den Code oder das Repository eingecheckt werden.
 5. Im Projektverzeichnis ausführen:
    ```powershell
-   python Selina\prototype\ggc_fetcher.py
+   python EU-Stromdaten Tool\prototype\ggc_data_fetcher.py
    ```
 6. Backend starten:
    ```powershell
-   uvicorn Selina.prototype.backend:app --reload --host 0.0.0.0 --port 8000
+   uvicorn EU-Stromdaten Tool.prototype.backend:app --reload --host 0.0.0.0 --port 8000
    ```
 7. Optionalen täglichen Abruf ausführen:
    ```powershell
-   python Selina\prototype\daily_run.py
+   python EU-Stromdaten Tool\prototype\daily_data_sync.py
    ```
 
 ### Windows Task Scheduler Beispiel
@@ -60,7 +60,7 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
    - Programm/Skript: `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
    - Argumente:
      ```powershell
-     -NoProfile -WindowStyle Hidden -Command "Set-Item -Path Env:GGC_API_BASE_URL -Value 'https://api.traxes.io/green-grid-compass'; Set-Item -Path Env:GGC_OAUTH_TOKEN_URL -Value 'https://signin.energy/am/oauth2/realms/root/realms/difesp/access_token'; Set-Item -Path Env:GGC_CLIENT_ID -Value 'esp_SelinaHeinITProjektaAnSenf_001'; Set-Item -Path Env:GGC_CLIENT_SECRET -Value '<dein_secret>'; Set-Item -Path Env:GGC_SCOPE -Value 'esp'; Set-Item -Path Env:ENTSOE_API_KEY -Value '<dein_entsoe_token>'; & 'C:\Users\<dein_user>\e\StudiumWeihenstephan\6.Semester\Git\GreenGrid_Compas_API\Selina\prototype\daily_run.py'"
+     -NoProfile -WindowStyle Hidden -Command "Set-Item -Path Env:GGC_API_BASE_URL -Value 'https://api.traxes.io/green-grid-compass'; Set-Item -Path Env:GGC_OAUTH_TOKEN_URL -Value 'https://signin.energy/am/oauth2/realms/root/realms/difesp/access_token'; Set-Item -Path Env:GGC_CLIENT_ID -Value 'esp_SelinaHeinITProjektaAnSenf_001'; Set-Item -Path Env:GGC_CLIENT_SECRET -Value '<dein_secret>'; Set-Item -Path Env:GGC_SCOPE -Value 'esp'; Set-Item -Path Env:ENTSOE_API_KEY -Value '<dein_entsoe_token>'; & 'C:\Users\<dein_user>\e\StudiumWeihenstephan\6.Semester\Git\GreenGrid_Compas_API\EU-Stromdaten Tool\prototype\daily_data_sync.py'"
      ```
 4. Stelle sicher, dass die Aufgabe mit einem Konto ausgeführt wird, das Zugriff auf die Projektdateien hat.
 5. Teste die Aufgabe einmal manuell im Taskplaner.
@@ -90,7 +90,7 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
   - `GET /v1/power`
   - `GET /v1/co2-intensity-rank`
   - `GET /v1/renewable-share-rank`
-- Skripte erstellt: `Selina/prototype/ggc_fetcher.py`, `Selina/prototype/entsoe_fetcher.py`, `Selina/prototype/phase2_data_pipeline.py`, `Selina/prototype/backend.py`, `Selina/prototype/daily_run.py`
+- Skripte erstellt: `EU-Stromdaten Tool/prototype/ggc_data_fetcher.py`, `EU-Stromdaten Tool/prototype/entsoe_data_fetcher.py`, `EU-Stromdaten Tool/prototype/unified_data_pipeline.py`, `EU-Stromdaten Tool/prototype/backend_api.py`, `EU-Stromdaten Tool/prototype/daily_data_sync.py`
 - Environment-Variablen:
   - `GGC_API_BASE_URL`
   - `GGC_API_KEY` (wenn verfügbar)
@@ -102,14 +102,14 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
   - `ENTSOE_API_KEY`
   - `BACKEND_API_KEY` (optional; aktiviert Backend-Schutz)
 - Ausgabe-Samples:
-  - `Selina/data/ggc_co2_intensity_live_sample.csv`
-  - `Selina/data/entsoe_generation_live_sample.csv`
-  - `Selina/data/unified_energy_data.csv`
-- Neue Backend-API: `Selina/prototype/backend.py` mit Endpunkten für `ping`, `ggc/co2-intensity`, `ggc/renewable-share`, `entsoe/generation` und `unified`
-- Scheduler-Wrapper: `Selina/prototype/daily_run.py` zur täglichen Ausführung des Pipeline-Skripts
+  - `EU-Stromdaten Tool/data/ggc_co2_intensity_live_sample.csv`
+  - `EU-Stromdaten Tool/data/entsoe_generation_live_sample.csv`
+  - `EU-Stromdaten Tool/data/unified_energy_data.csv`
+- Neue Backend-API: `EU-Stromdaten Tool/prototype/backend_api.py` mit Endpunkten für `ping`, `ggc/co2-intensity`, `ggc/renewable-share`, `entsoe/generation` und `unified`
+- Scheduler-Wrapper: `EU-Stromdaten Tool/prototype/daily_data_sync.py` zur täglichen Ausführung des Pipeline-Skripts
 
 ## Nächste Schritte
-1. Scheduler / Backfill einbauen (CLI-Backfill in `phase2_data_pipeline.py` bereits vorbereitet)
+1. Scheduler / Backfill einbauen (CLI-Backfill in `unified_data_pipeline.py` bereits vorbereitet)
 2. Etablierung eines einheitlichen Schemas für alle Quellen (Standardspalten definiert)
 3. API-Endpoint im Backend implementieren ✅
 4. Authentifikation & Rate-Limit-Handling ergänzen ✅

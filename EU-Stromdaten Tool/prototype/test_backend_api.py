@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from backend import app
+from backend_api import app
 from fastapi.testclient import TestClient
 
 os.environ['BACKEND_API_KEY'] = 'test-secret'
