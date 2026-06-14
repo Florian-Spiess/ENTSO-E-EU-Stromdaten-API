@@ -1,14 +1,53 @@
 import { useEffect, useRef, useState } from 'react';
 
-const DEFAULT_BACKEND = import.meta.env?.VITE_BACKEND_URL || 'http://localhost:8000';
+const DEFAULT_BACKEND = import.meta.env?.VITE_BACKEND_URL || 'http://127.0.0.1:9000';
 const DEFAULT_ZONE = 'DE';
-const DEFAULT_START = '2026-06-01T00:00';
-const DEFAULT_END = '2026-06-01T23:00';
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+const DEFAULT_START = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+const DEFAULT_END = new Date(today.getTime() + 23 * 60 * 60 * 1000).toISOString().slice(0, 16);
 const STORAGE_PREFIX = 'ggc-dashboard';
 const CONFIG_KEY = `${STORAGE_PREFIX}:config`;
 const BOOKMARKS_KEY = `${STORAGE_PREFIX}:bookmarks`;
 const CACHE_KEY = `${STORAGE_PREFIX}:snapshot`;
 const API_KEY_KEY = `${STORAGE_PREFIX}:api-key`;
+
+function normalizeBackendUrl(url) {
+  if (!url) return DEFAULT_BACKEND;
+  const trimmed = url.toString().trim().replace(/\/$/, '');
+  if (trimmed === '/api' || trimmed === 'api') {
+    return DEFAULT_BACKEND;
+  }
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1):8000$/i.test(trimmed)) {
+    return DEFAULT_BACKEND;
+  }
+  return trimmed;
+}
+
+function getTodayRange() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  return {
+    start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    end: new Date(today.getTime() + 23 * 60 * 60 * 1000).toISOString().slice(0, 16),
+  };
+}
+
+function isSameLocalDate(value, compareDate) {
+  if (!value) return false;
+  const date = new Date(value);
+  return (
+    date.getFullYear() === compareDate.getFullYear() &&
+    date.getMonth() === compareDate.getMonth() &&
+    date.getDate() === compareDate.getDate()
+  );
+}
+
+function isSameWeekRange(startValue, endValue) {
+  const today = new Date();
+  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return isSameLocalDate(startValue, sevenDaysAgo) && isSameLocalDate(endValue, today);
+}
 
 const plotlyAvailable = () => typeof window !== 'undefined' && window.Plotly;
 
@@ -153,8 +192,8 @@ function buildTable(records) {
 }
 
 export default function App() {
-  const [backendUrl, setBackendUrl] = useState(DEFAULT_BACKEND);
-  const [apiKey, setApiKey] = useState('');
+  const [backendUrl, setBackendUrl] = useState(normalizeBackendUrl(DEFAULT_BACKEND));
+  const [apiKey, setApiKey] = useState('changeme');
   const [zone, setZone] = useState(DEFAULT_ZONE);
   const [start, setStart] = useState(DEFAULT_START);
   const [end, setEnd] = useState(DEFAULT_END);
@@ -187,10 +226,15 @@ export default function App() {
     const cachedSnapshot = readJsonStorage(CACHE_KEY, null);
 
     if (storedConfig) {
-      setBackendUrl(storedConfig.backendUrl || DEFAULT_BACKEND);
+      const todayRange = getTodayRange();
+      const storedStart = storedConfig.start || DEFAULT_START;
+      const storedEnd = storedConfig.end || DEFAULT_END;
+      const useToday = !isSameWeekRange(storedStart, storedEnd);
+
+      setBackendUrl(normalizeBackendUrl(storedConfig.backendUrl || DEFAULT_BACKEND));
       setZone(storedConfig.zone || DEFAULT_ZONE);
-      setStart(storedConfig.start || DEFAULT_START);
-      setEnd(storedConfig.end || DEFAULT_END);
+      setStart(useToday ? todayRange.start : storedStart);
+      setEnd(useToday ? todayRange.end : storedEnd);
       setRememberApiKey(Boolean(storedConfig.rememberApiKey));
     }
 
@@ -198,7 +242,7 @@ export default function App() {
       setBookmarks(storedBookmarks);
     }
 
-    const storedApiKey = typeof window !== 'undefined' ? window.sessionStorage.getItem(API_KEY_KEY) || '' : '';
+    const storedApiKey = typeof window !== 'undefined' ? window.sessionStorage.getItem(API_KEY_KEY) : null;
     if (storedApiKey) {
       setApiKey(storedApiKey);
     }
@@ -227,7 +271,7 @@ export default function App() {
     }
 
     const config = {
-      backendUrl,
+      backendUrl: normalizeBackendUrl(backendUrl),
       zone,
       start,
       end,
@@ -245,7 +289,7 @@ export default function App() {
   const headers = apiKey ? { 'Content-Type': 'application/json', 'x-api-key': apiKey } : { 'Content-Type': 'application/json' };
 
   const fetchApi = async (path, targetBackendUrl = backendUrl) => {
-    const normalizedUrl = targetBackendUrl.replace(/\/$/, '');
+    const normalizedUrl = normalizeBackendUrl(targetBackendUrl).replace(/\/$/, '');
     const response = await fetch(`${normalizedUrl}${path}`, { headers });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -291,6 +335,7 @@ export default function App() {
       let normalizedComparisonRenewable = [];
       let normalizedRenewable = [];
       let nextSummary = null;
+      let currentRawData = [...co2Records];
 
       if (comparisonEnabled) {
         const duration = Number(comparisonWindowHours) * 60 * 60 * 1000;
@@ -310,11 +355,11 @@ export default function App() {
         normalizedComparisonRenewable = normalizeSeries(comparisonRenewableRecords);
         setRenewableData(normalizedRenewable);
         setComparisonRenewableData(normalizedComparisonRenewable);
-        nextSummary = {
+        currentRawData = [...co2Records, ...renewableRecords];
+        setComparisonSummary({
           co2: buildComparisonSummary(normalizedCo2, normalizedComparisonCo2, 'CO2-Intensität'),
           renewable: buildComparisonSummary(normalizedRenewable, normalizedComparisonRenewable, 'Erneuerbarer Anteil'),
-        };
-        setComparisonSummary(nextSummary);
+        });
       } else {
         setStatus('Lade erneuerbare Anteile...');
         const renewableRecords = await fetchApi(`/ggc/renewable_share?zone=${encodeURIComponent(zone)}&start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}`);
@@ -323,15 +368,19 @@ export default function App() {
         setComparisonCo2Data([]);
         setComparisonRenewableData([]);
         setComparisonSummary(null);
+        currentRawData = [...co2Records, ...renewableRecords];
       }
+
+      setRawData(currentRawData);
+      setDataLabel('Rohdaten (aktueller Zeitraum)');
 
       const fetchedAt = new Date().toLocaleString('de-DE');
       setLastFetch(fetchedAt);
       const snapshot = {
         co2Data: normalizedCo2,
         renewableData: normalizedRenewable,
-        rawData,
-        dataLabel,
+        rawData: currentRawData,
+        dataLabel: 'Rohdaten (aktueller Zeitraum)',
         lastFetch: fetchedAt,
         cacheInfo: { zone, start, end, comparisonEnabled, comparisonWindowHours, fetchedAt },
       };
@@ -458,6 +507,7 @@ export default function App() {
   const latestCo2 = co2Data.length ? co2Data[co2Data.length - 1].y : null;
   const latestRenewable = renewableData.length ? renewableData[renewableData.length - 1].y : null;
   const rawCount = rawData.length;
+  const rawDataSeries = normalizeSeries(rawData);
 
   return (
     <div className="app-shell">
@@ -590,6 +640,10 @@ export default function App() {
         <section className="panel charts">
           <PlotlyChart points={co2Data} comparisonPoints={comparisonCo2Data} comparisonLabel={`Vorheriger ${comparisonWindowHours}h-Zeitraum`} title="CO2-Intensität" yLabel="gCO2eq/kWh" />
           <PlotlyChart points={renewableData} comparisonPoints={comparisonRenewableData} comparisonLabel={`Vorheriger ${comparisonWindowHours}h-Zeitraum`} title="Erneuerbarer Anteil" yLabel="%" />
+        </section>
+
+        <section className="panel charts">
+          <PlotlyChart points={rawDataSeries} title={dataLabel} yLabel="Wert" />
         </section>
 
         <section className="panel">

@@ -4,7 +4,8 @@ from pathlib import Path
 import os
 import sys
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import pandas as pd
 from dotenv import load_dotenv
@@ -26,6 +27,14 @@ app = FastAPI(
     title="Green Grid Compass Phase 3 API",
     description="FastAPI-Backend für Green Grid Compass, ENTSO-E Fallback und einheitliche Stromzeitreihen-APIs.",
     version="0.3.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 GGC_METRIC_PATHS = {
@@ -52,6 +61,17 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
         status_code=429,
         content={"detail": "Rate limit exceeded. Bitte später erneut versuchen."},
     )
+
+
+@app.options("/{full_path:path}")
+def cors_preflight(full_path: str, request: Request) -> Response:
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "3600",
+    }
+    return Response(status_code=204, headers=headers)
 
 
 def parse_iso_datetime(value: Optional[str], default: Optional[datetime] = None) -> datetime:

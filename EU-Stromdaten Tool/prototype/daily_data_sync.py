@@ -17,7 +17,7 @@ def main() -> int:
     output_file = "unified_energy_data.csv"
 
     env = os.environ.copy()
-    env.setdefault("GGC_API_BASE_URL", "https://api.traxes.io/green-grid-compass")
+    env.setdefault("GGC_API_BASE_URL", "https://api.greengrid-compass.eu")
 
     command = [sys.executable, str(script), "--from", start.isoformat(), "--to", end.isoformat(), "--output", output_file]
     print("Starte täglichen Datenabruf:")
