@@ -13,7 +13,7 @@ sys.path.insert(0, str(HERE))
 import ggc_data_fetcher as ggc_fetcher
 import entsoe_data_fetcher as entsoe_fetcher
 
-DEFAULT_ZONE = os.getenv("GGC_API_ZONE", "DE")
+DEFAULT_ZONE = os.getenv("ENTSOE_ZONE", "10Y1001A1001A63L")
 DEFAULT_ENTSO_ZONE = os.getenv("ENTSOE_ZONE", "10Y1001A1001A63L")
 DEFAULT_OUTPUT = "unified_energy_data.csv"
 
@@ -92,7 +92,7 @@ def normalize_df(df: pd.DataFrame, metric: str, source: str, zone: str, unit: st
     return df[columns]
 
 
-def fetch_primary_ggc(start: datetime, end: datetime, zone: str) -> list[pd.DataFrame]:
+def fetch_optional_ggc(start: datetime, end: datetime, zone: str) -> list[pd.DataFrame]:
     records = []
 
     for metric_name, func, unit in [
@@ -111,31 +111,31 @@ def fetch_primary_ggc(start: datetime, end: datetime, zone: str) -> list[pd.Data
     return records
 
 
-def fetch_entsoe_fallback(start: datetime, end: datetime, zone: str) -> list[pd.DataFrame]:
+def fetch_primary_entsoe(start: datetime, end: datetime, zone: str) -> list[pd.DataFrame]:
     token = os.getenv("ENTSOE_API_KEY")
     if not token:
-        logging.warning("ENTSOE_API_KEY nicht gesetzt; ENTSO-E Fallback wird übersprungen.")
+        logging.warning("ENTSOE_API_KEY nicht gesetzt; ENTSO-E-Daten werden übersprungen.")
         return []
 
     try:
-        df = entsoe_fetcher.fetch_entsoe_generation(DEFAULT_ENTSO_ZONE, start, end, token)
+        df = entsoe_fetcher.fetch_entsoe_generation(zone, start, end, token)
         if df.empty:
-            logging.info("Keine ENTSO-E-Fallbackdaten gefunden.")
+            logging.info("Keine ENTSO-E-Daten gefunden.")
             return []
         return [normalize_df(df, "generation", "ENTSO-E", zone, "MW")]
     except Exception as exc:
-        logging.warning("ENTSO-E Fallback konnte nicht geladen werden: %s", exc)
+        logging.warning("ENTSO-E Daten konnten nicht geladen werden: %s", exc)
         return []
 
 
 def build_unified_dataset(start: datetime, end: datetime, zone: str, enable_ggc: bool, enable_entsoe: bool) -> pd.DataFrame:
     frames = []
 
-    if enable_ggc:
-        frames.extend(fetch_primary_ggc(start, end, zone))
-
     if enable_entsoe:
-        frames.extend(fetch_entsoe_fallback(start, end, zone))
+        frames.extend(fetch_primary_entsoe(start, end, zone))
+
+    if enable_ggc:
+        frames.extend(fetch_optional_ggc(start, end, zone))
 
     if not frames:
         raise RuntimeError("Keine Datenquellen konnten geladen werden. Prüfe die API-Keys und Parameter.")
@@ -153,7 +153,7 @@ def save_unified_dataframe(df: pd.DataFrame, output_file: str) -> Path:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Phase 2 Pipeline: GGC primär, ENTSO-E fallback")
+    parser = argparse.ArgumentParser(description="Phase 2 Pipeline: ENTSO-E primär, GGC optional")
     parser.add_argument("--from", dest="from_ts", type=parse_timestamp, help="Startzeitraum im ISO-Format")
     parser.add_argument("--to", dest="to_ts", type=parse_timestamp, help="Endzeitraum im ISO-Format")
     parser.add_argument("--zone", default=DEFAULT_ZONE, help="Bidding Zone / Zone code")
@@ -180,8 +180,14 @@ def main() -> None:
         total_hours = timedelta(days=args.backfill_days)
         start = end - total_hours
 
-    logging.info("Starte Phase-2-Pipeline: %s bis %s für Zone %s", start.isoformat(), end.isoformat(), args.zone)
-    unified = build_unified_dataset(start, end, args.zone, not args.no_ggc, not args.no_entsoe)
+    logging.info("Starte Phase-2-Pipeline mit ENTSO-E primär: %s bis %s für Zone %s", start.isoformat(), end.isoformat(), args.zone)
+    unified = build_unified_dataset(
+        start,
+        end,
+        args.zone,
+        enable_ggc=not args.no_ggc,
+        enable_entsoe=not args.no_entsoe,
+    )
 
     output_path = save_unified_dataframe(unified, args.output)
     logging.info("Gespeichert: %s", output_path)

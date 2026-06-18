@@ -24,8 +24,8 @@ import entsoe_data_fetcher as entsoe_fetcher
 import unified_data_pipeline as phase2_data_pipeline
 
 app = FastAPI(
-    title="Green Grid Compass Phase 3 API",
-    description="FastAPI-Backend für Green Grid Compass, ENTSO-E Fallback und einheitliche Stromzeitreihen-APIs.",
+    title="ENTSO-E Energy Data API",
+    description="FastAPI-Backend mit ENTSO-E als primärer Datenquelle und optionalen Green Grid Compass-Metriken.",
     version="0.3.0",
 )
 
@@ -99,8 +99,8 @@ def make_time_range(start: Optional[str], end: Optional[str]) -> tuple[datetime,
 def root(request: Request, _api_key_valid: None = Depends(verify_backend_api_key)):
     return {
         "status": "ok",
-        "service": "Green Grid Compass Phase 3 API",
-        "message": "Verwende /ggc/metrics oder /ggc/{metric} für GGC-Daten. Siehe OpenAPI-Dokumentation unter /docs.",
+        "service": "ENTSO-E Energy Data API",
+        "message": "Verwende /entsoe/generation für Primärdaten und /unified für kombinierte Zeitreihen. Optional sind GGC-Endpunkte verfügbar.",
     }
 
 
@@ -209,14 +209,21 @@ def entsoe_generation(
 def unified_data(
     request: Request,
     _api_key_valid: None = Depends(verify_backend_api_key),
-    zone: str = Query("DE", description="GGC zone code"),
+    zone: str = Query("10Y1001A1001A63L", description="ENTSO-E bidding zone code"),
     start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
     end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
-    include_entsoe: bool = Query(True, description="ENTSO-E als Fallback einbeziehen"),
+    include_entsoe: bool = Query(True, description="ENTSO-E als primäre Datenquelle einbeziehen"),
+    include_ggc: bool = Query(False, description="Optionale GGC-Metriken zusätzlich einbeziehen"),
 ):
     try:
         start_ts, end_ts = make_time_range(start, end)
-        df = phase2_data_pipeline.build_unified_dataset(start_ts, end_ts, zone, True, include_entsoe)
+        df = phase2_data_pipeline.build_unified_dataset(
+            start_ts,
+            end_ts,
+            zone,
+            enable_ggc=include_ggc,
+            enable_entsoe=include_entsoe,
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

@@ -53,9 +53,27 @@ def fetch_entsoe_generation(
         "securityToken": security_token,
     }
 
-    response = requests.get(API_URL, params=params, timeout=30)
+    headers = {
+        "Accept": "application/xml, text/xml",
+        "User-Agent": "GGC-ENTSOE-Client/1.0",
+    }
+
+    response = requests.get(API_URL, params=params, headers=headers, timeout=30)
     response.raise_for_status()
-    return parse_entsoe_xml(response.text, bidding_zone)
+
+    content_type = response.headers.get("content-type", "")
+    # If the platform returns HTML (login/landing page) surface that for debugging
+    if "html" in content_type.lower():
+        raise RuntimeError(
+            "ENTSO-E returned HTML instead of XML (possible invalid token or blocked request). Response snippet: "
+            + response.text[:1000]
+        )
+
+    try:
+        return parse_entsoe_xml(response.text, bidding_zone)
+    except ET.ParseError as exc:
+        # include the server response to help debugging invalid-token / error payloads
+        raise RuntimeError(f"XML parse error from ENTSO-E: {exc}. Response snippet: {response.text[:1000]}")
 
 
 def parse_entsoe_xml(xml_text: str, bidding_zone: str) -> pd.DataFrame:
