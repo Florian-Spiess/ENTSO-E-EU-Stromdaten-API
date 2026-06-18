@@ -1,4 +1,4 @@
-# 🌍 Green Grid Compass API
+# 🌍 ENTSO-E API
 
 ## EU-Stromdaten abrufen und visualisieren
 
@@ -26,6 +26,7 @@ Ein System/API-Projekt, das aktuelle und historische **Stromdaten aus Europa** s
 
 ### Mögliche Datenquellen 🔌
 - **ENTSO-E Transparency Platform** (offizielle Standard-Quelle)
+- **Green Grid Compass / TraXes** (optionale Zusatzmetriken wie CO2-Intensität)
 - **electricityMap API** (CO2-Daten)
 - **Open Power System Data (OPSD)** (historische Zeitreihen)
 - Nationale TSOs (TenneT, Amprion, 50Hertz, RTE, Red Eléctrica)

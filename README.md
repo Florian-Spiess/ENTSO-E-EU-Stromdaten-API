@@ -1,7 +1,7 @@
 # GreenGrid_Compas_API
 
 ## Projektüberblick
-Dieses Repository enthält Backend, Frontend und Prototypen für Green Grid Compass.
+Dieses Repository enthält Backend, Frontend und Prototypen für ein ENTSO-E-zentriertes Energie-Dashboard mit optionalen Green-Grid-Compass-Zusatzmetriken.
 
 ## Schnellstart
 
@@ -10,7 +10,7 @@ Dieses Repository enthält Backend, Frontend und Prototypen für Green Grid Comp
 cd EU-Stromdaten Tool/prototype
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn backend:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend

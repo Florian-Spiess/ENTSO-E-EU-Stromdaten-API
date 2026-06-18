@@ -1,6 +1,6 @@
-# Green Grid Compass React Dashboard
+# ENTSO-E React Dashboard
 
-Dieses Projekt ist der React-Frontend-Prototyp für Phase 4 des Green Grid Compass-Projekts.
+Dieses Projekt ist der React-Frontend-Prototyp für ein ENTSO-E-zentriertes Dashboard mit optionalen Green-Grid-Compass-Zusatzmetriken.
 
 ## Einrichtung
 

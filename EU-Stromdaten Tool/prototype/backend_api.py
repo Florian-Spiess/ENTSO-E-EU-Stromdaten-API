@@ -25,7 +25,7 @@ import unified_data_pipeline as phase2_data_pipeline
 
 app = FastAPI(
     title="ENTSO-E Energy Data API",
-    description="FastAPI-Backend mit ENTSO-E als primärer Datenquelle und optionalen Green Grid Compass-Metriken.",
+    description="FastAPI-Backend mit ENTSO-E als primärer Datenquelle und optionalen GGC-Zusatzmetriken.",
     version="0.3.0",
 )
 
@@ -37,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GGC_METRIC_PATHS = {
+OPTIONAL_GGC_METRIC_PATHS = {
     "co2_intensity": "CO2-Intensität",
     "renewable_share": "Erneuerbarer Anteil",
     "co2_emissions": "CO2-Emissionen",
@@ -100,7 +100,7 @@ def root(request: Request, _api_key_valid: None = Depends(verify_backend_api_key
     return {
         "status": "ok",
         "service": "ENTSO-E Energy Data API",
-        "message": "Verwende /entsoe/generation für Primärdaten und /unified für kombinierte Zeitreihen. Optional sind GGC-Endpunkte verfügbar.",
+        "message": "Verwende /entsoe/generation für Primärdaten und /unified für kombinierte Zeitreihen. GGC-Endpunkte sind optional als Zusatz verfügbar.",
     }
 
 
@@ -112,13 +112,13 @@ def health(request: Request, _api_key_valid: None = Depends(verify_backend_api_k
 
 @app.get("/ggc/metrics")
 @limiter.limit("20/minute")
-def ggc_metrics(request: Request, _api_key_valid: None = Depends(verify_backend_api_key)):
-    return [{"metric": metric, "description": description} for metric, description in GGC_METRIC_PATHS.items()]
+def optional_ggc_metrics(request: Request, _api_key_valid: None = Depends(verify_backend_api_key)):
+    return [{"metric": metric, "description": description} for metric, description in OPTIONAL_GGC_METRIC_PATHS.items()]
 
 
 @app.get("/ggc/{metric}")
 @limiter.limit("15/minute")
-def ggc_metric(
+def optional_ggc_metric(
     request: Request,
     metric: str,
     _api_key_valid: None = Depends(verify_backend_api_key),
@@ -126,8 +126,8 @@ def ggc_metric(
     start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
     end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
 ):
-    if metric not in GGC_METRIC_PATHS:
-        raise HTTPException(status_code=404, detail=f"Unbekannte GGC-Metrik: {metric}. Verwende /ggc/metrics.")
+    if metric not in OPTIONAL_GGC_METRIC_PATHS:
+        raise HTTPException(status_code=404, detail=f"Unbekannte optionale GGC-Metrik: {metric}. Verwende /ggc/metrics.")
 
     try:
         start_ts, end_ts = make_time_range(start, end)
@@ -149,7 +149,7 @@ def ggc_metric(
 
 @app.get("/ggc/co2-intensity")
 @limiter.limit("10/minute")
-def ggc_co2_intensity(
+def optional_ggc_co2_intensity(
     request: Request,
     _api_key_valid: None = Depends(verify_backend_api_key),
     zone: str = Query("DE", description="Zone code"),
@@ -167,7 +167,7 @@ def ggc_co2_intensity(
 
 @app.get("/ggc/renewable-share")
 @limiter.limit("10/minute")
-def ggc_renewable_share(
+def optional_ggc_renewable_share(
     request: Request,
     _api_key_valid: None = Depends(verify_backend_api_key),
     zone: str = Query("DE", description="Zone code"),
@@ -188,7 +188,7 @@ def ggc_renewable_share(
 def entsoe_generation(
     request: Request,
     _api_key_valid: None = Depends(verify_backend_api_key),
-    zone: str = Query("10Y1001A1001A63L", description="ENTSO-E bidding zone code"),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
     start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
     end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
 ):
@@ -204,12 +204,118 @@ def entsoe_generation(
     return df.to_dict(orient="records")
 
 
+@app.get("/entsoe/installed-capacity")
+@limiter.limit("5/minute")
+def entsoe_installed_capacity(
+    request: Request,
+    _api_key_valid: None = Depends(verify_backend_api_key),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
+    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
+    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
+):
+    try:
+        start_ts, end_ts = make_time_range(start, end)
+        token = os.getenv("ENTSOE_API_KEY")
+        if not token:
+            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
+        df = entsoe_fetcher.fetch_entsoe_installed_generation_capacity(zone, start_ts, end_ts, token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return df.to_dict(orient="records")
+
+
+@app.get("/entsoe/generation-per-plant")
+@limiter.limit("5/minute")
+def entsoe_generation_per_plant(
+    request: Request,
+    _api_key_valid: None = Depends(verify_backend_api_key),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
+    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
+    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
+):
+    try:
+        start_ts, end_ts = make_time_range(start, end)
+        token = os.getenv("ENTSOE_API_KEY")
+        if not token:
+            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
+        df = entsoe_fetcher.fetch_entsoe_generation_per_plant(zone, start_ts, end_ts, token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return df.to_dict(orient="records")
+
+
+@app.get("/entsoe/consumption")
+@limiter.limit("5/minute")
+def entsoe_consumption(
+    request: Request,
+    _api_key_valid: None = Depends(verify_backend_api_key),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
+    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
+    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
+):
+    try:
+        start_ts, end_ts = make_time_range(start, end)
+        token = os.getenv("ENTSOE_API_KEY")
+        if not token:
+            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
+        df = entsoe_fetcher.fetch_entsoe_consumption(zone, start_ts, end_ts, token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return df.to_dict(orient="records")
+
+
+@app.get("/entsoe/flows")
+@limiter.limit("5/minute")
+def entsoe_flows(
+    request: Request,
+    _api_key_valid: None = Depends(verify_backend_api_key),
+    zone: str = Query("10Y1001A1001A63L", description="Source ENTSO-E bidding zone code"),
+    zone_to: str = Query("FR", description="Target ENTSO-E bidding zone code"),
+    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
+    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
+):
+    try:
+        start_ts, end_ts = make_time_range(start, end)
+        token = os.getenv("ENTSOE_API_KEY")
+        if not token:
+            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
+        df = entsoe_fetcher.fetch_entsoe_crossborder_flows(zone, zone_to, start_ts, end_ts, token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return df.to_dict(orient="records")
+
+
+@app.get("/entsoe/prices")
+@limiter.limit("5/minute")
+def entsoe_prices(
+    request: Request,
+    _api_key_valid: None = Depends(verify_backend_api_key),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
+    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
+    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
+):
+    try:
+        start_ts, end_ts = make_time_range(start, end)
+        token = os.getenv("ENTSOE_API_KEY")
+        if not token:
+            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
+        df = entsoe_fetcher.fetch_entsoe_day_ahead_prices(zone, start_ts, end_ts, token)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return df.to_dict(orient="records")
+
+
 @app.get("/unified")
 @limiter.limit("10/minute")
 def unified_data(
     request: Request,
     _api_key_valid: None = Depends(verify_backend_api_key),
-    zone: str = Query("10Y1001A1001A63L", description="ENTSO-E bidding zone code"),
+    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
     start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
     end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
     include_entsoe: bool = Query(True, description="ENTSO-E als primäre Datenquelle einbeziehen"),

@@ -169,6 +169,130 @@ button:disabled {
   gap: 24px;
 }
 
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-header h2,
+.chart-tile h3 {
+  margin: 0;
+}
+
+.section-header p,
+.chart-tile p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.chart-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.explorer-toolbar {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.explorer-section {
+  display: grid;
+  gap: 10px;
+}
+
+.explorer-tabs .selected-tab {
+  background: #0f172a;
+}
+
+.explorer-tabs .selected-tab:hover {
+  background: #0f172a;
+}
+
+.explorer-focus-card {
+  margin-top: 8px;
+}
+
+.raw-json {
+  margin: 0;
+  min-height: 280px;
+  max-height: 560px;
+  overflow: auto;
+  padding: 18px;
+  border-radius: 14px;
+  background: #0b1220;
+  color: #dbeafe;
+  border: 1px solid #1e293b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chart-tile {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.chart-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chart-tile .chart-card {
+  min-height: 300px;
+}
+
+.chart-summary {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+.chart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.chart-summary-row span {
+  color: #64748b;
+}
+
+.chart-summary-row strong {
+  color: #0f172a;
+  text-align: right;
+}
+
+.chart-empty-state {
+  min-height: 300px;
+  border-radius: 14px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.chart-empty-state strong {
+  color: #1f2937;
+}
+
 .chart-card {
   min-height: 420px;
 }
@@ -219,5 +343,14 @@ tr:nth-child(even) {
 
   .hero {
     padding: 20px;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .explorer-tabs {
+    flex-direction: column;
   }
 }

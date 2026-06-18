@@ -6,9 +6,10 @@ import math
 import pandas as pd
 import requests
 
-DEFAULT_BASE_URL = os.getenv("GGC_API_BASE_URL", "https://api.traxes.io/green-grid-compass")
+DEFAULT_BASE_URL = os.getenv("GGC_API_BASE_URL", "https://api.greengridcompass.eu")
 DEFAULT_AUTH_TYPE = os.getenv("GGC_API_AUTH_TYPE", "Bearer")
 DEFAULT_ZONE = os.getenv("GGC_API_ZONE", "DE")
+DEFAULT_VERIFY_SSL = os.getenv("GGC_API_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
 
 GGC_METRIC_PATHS = {
     "co2_intensity": "/v1/co2-intensity",
@@ -158,7 +159,7 @@ def fetch_oauth_access_token() -> str:
         "scope": scope,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    response = requests.post(token_url, data=data, headers=headers, timeout=30)
+    response = requests.post(token_url, data=data, headers=headers, timeout=30, verify=DEFAULT_VERIFY_SSL)
     response.raise_for_status()
     token_data = response.json()
     token = token_data.get("access_token")
@@ -180,7 +181,7 @@ def fetch_ggc_data(path: str, params: dict[str, str]) -> dict:
     token, auth_type = get_ggc_access_token()
     url = build_url(path)
     headers = build_headers(token, auth_type)
-    response = requests.get(url, headers=headers, params=params, timeout=30)
+    response = requests.get(url, headers=headers, params=params, timeout=30, verify=DEFAULT_VERIFY_SSL)
     response.raise_for_status()
     return response.json()
 

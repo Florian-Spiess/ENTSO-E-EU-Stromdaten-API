@@ -1,4 +1,4 @@
-# 🌍 Green Grid Compass API — Projektfortschritt
+# 🌍 ENTSO-E API — Projektfortschritt
 
 **Status:** Phase 1 (Konzept & Prototyp) ✅ | **Last Updated:** 24. Mai 2026
 
@@ -17,7 +17,7 @@
 ### Phase 1: Konzept & Grundlagen
 
 #### 1️⃣ Scope & Ziele definieren ✓
-- **Thema:** Green Grid Compass API — EU-Stromdaten abrufen und visualisieren
+- **Thema:** ENTSO-E API — EU-Stromdaten abrufen und visualisieren, mit optionalen GGC-Zusatzmetriken
 - **Kernfunktionen:**
   - Echtzeit-Stromdaten sammeln (Erzeugung, Verbrauch, CO2, Preise)
   - Zeitreihen-Analyse & Aggregation

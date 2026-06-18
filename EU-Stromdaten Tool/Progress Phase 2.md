@@ -3,39 +3,38 @@
 **Status: Phase 2 abgeschlossen** ✅
 
 ## Ziel
-Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetchers mit Green Grid Compass als primäre Quelle und ENTSO-E als Fallback für zusätzliche Daten, die GGC nicht liefert. Das Ziel ist ein wiederverwendbarer Python-Prototyp, der die Green Grid Compass-/TraXes-API nutzt und ENTSO-E für ergänzende Metriken integriert.
+Phase 2 des Projekts ist die Umsetzung eines Live-Fetchers mit ENTSO-E als primärer Datenquelle und optionalen Green-Grid-Compass-Zusatzmetriken. Das Ziel ist ein wiederverwendbarer Python-Prototyp, der die ENTSO-E-API für die Standarddaten nutzt und GGC nur bei Bedarf ergänzt.
 
 ## Umsetzung
 - Neue Datei erstellt: `EU-Stromdaten Tool/prototype/ggc_data_fetcher.py`
-- Bestehendes Fallback-Skript: `EU-Stromdaten Tool/prototype/entsoe_data_fetcher.py`
+- ENTSO-E-Fetcher: `EU-Stromdaten Tool/prototype/entsoe_data_fetcher.py`
 - Die Implementierung basiert auf:
-  - Green Grid Compass (TraXes) API als Primärquelle
-  - ENTSO-E API als sekundäre Quelle für zusätzliche Stromdaten
-  - JSON-Parsing für GGC-Antworten
-  - CSV-Ausgabe in `EU-Stromdaten Tool/data/ggc_co2_intensity_live_sample.csv`
+   - ENTSO-E API als Primärquelle für Erzeugungsdaten
+   - Green Grid Compass als optionale Zusatzquelle für CO2- und Anteilsmetriken
+   - JSON-Parsing für GGC-Antworten
+   - CSV-Ausgabe in `EU-Stromdaten Tool/data/ggc_co2_intensity_live_sample.csv`
 
 ## Was wurde realisiert
-- `fetch_ggc_data(...)` baut den API-Request an Green Grid Compass auf
-- `fetch_co2_intensity(...)` und `fetch_renewable_share(...)` sind Beispiel-Endpunkte von GGC
-- `fetch_entsoe_generation(...)` bleibt als Fallback für ergänzende Erzeugungsdaten
+- `fetch_entsoe_generation(...)` baut den primären API-Request an ENTSO-E auf
+- `fetch_ggc_data(...)`, `fetch_co2_intensity(...)` und `fetch_renewable_share(...)` bleiben als optionale Zusatzpfade erhalten
 - `prototype/requirements.txt` wurde um `requests` ergänzt
 
 ## Bedienung
-1. GGC-Zugangsdaten und `GGC_API_BASE_URL` prüfen
-2. Für direkten API-Key setzen:
+1. ENTSO-E-Zugangsdaten prüfen und `ENTSOE_API_KEY` setzen
+2. Für optionale GGC-Zusatzmetriken den API-Zugriff konfigurieren:
    ```powershell
-   $env:GGC_API_BASE_URL = "https://api.traxes.io/green-grid-compass"
+   $env:GGC_API_BASE_URL = "https://api.greengridcompass.eu"
    $env:GGC_API_KEY = "dein_token"
    ```
 3. Für OAuth2 Client-Credentials setzen:
    ```powershell
-   $env:GGC_API_BASE_URL = "https://api.traxes.io/green-grid-compass"
+   $env:GGC_API_BASE_URL = "https://api.greengridcompass.eu"
    $env:GGC_OAUTH_TOKEN_URL = "https://signin.energy/am/oauth2/realms/root/realms/difesp/access_token"
    $env:GGC_CLIENT_ID = "esp_SelinaHeinITProjektaAnSenf_001"
    $env:GGC_CLIENT_SECRET = "dein_secret"
    $env:GGC_SCOPE = "esp"
    ```
-4. Für ENTSO-E setzen:
+4. Das Backend startet dann mit ENTSO-E als Standardquelle:
    ```powershell
    $env:ENTSOE_API_KEY = "<dein_entsoe_token>"
    ```
@@ -46,7 +45,7 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
    ```
 6. Backend starten:
    ```powershell
-   uvicorn EU-Stromdaten Tool.prototype.backend:app --reload --host 0.0.0.0 --port 8000
+   uvicorn EU-Stromdaten Tool.prototype.backend_api:app --reload --host 0.0.0.0 --port 8000
    ```
 7. Optionalen täglichen Abruf ausführen:
    ```powershell
@@ -60,15 +59,15 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
    - Programm/Skript: `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
    - Argumente:
      ```powershell
-     -NoProfile -WindowStyle Hidden -Command "Set-Item -Path Env:GGC_API_BASE_URL -Value 'https://api.traxes.io/green-grid-compass'; Set-Item -Path Env:GGC_OAUTH_TOKEN_URL -Value 'https://signin.energy/am/oauth2/realms/root/realms/difesp/access_token'; Set-Item -Path Env:GGC_CLIENT_ID -Value 'esp_SelinaHeinITProjektaAnSenf_001'; Set-Item -Path Env:GGC_CLIENT_SECRET -Value '<dein_secret>'; Set-Item -Path Env:GGC_SCOPE -Value 'esp'; Set-Item -Path Env:ENTSOE_API_KEY -Value '<dein_entsoe_token>'; & 'C:\Users\<dein_user>\e\StudiumWeihenstephan\6.Semester\Git\GreenGrid_Compas_API\EU-Stromdaten Tool\prototype\daily_data_sync.py'"
+   -NoProfile -WindowStyle Hidden -Command "Set-Item -Path Env:GGC_API_BASE_URL -Value 'https://api.greengridcompass.eu'; Set-Item -Path Env:GGC_OAUTH_TOKEN_URL -Value 'https://signin.energy/am/oauth2/realms/root/realms/difesp/access_token'; Set-Item -Path Env:GGC_CLIENT_ID -Value 'esp_SelinaHeinITProjektaAnSenf_001'; Set-Item -Path Env:GGC_CLIENT_SECRET -Value '<dein_secret>'; Set-Item -Path Env:GGC_SCOPE -Value 'esp'; Set-Item -Path Env:ENTSOE_API_KEY -Value '<dein_entsoe_token>'; & 'C:\Users\<dein_user>\e\StudiumWeihenstephan\6.Semester\Git\GreenGrid_Compas_API\EU-Stromdaten Tool\prototype\daily_data_sync.py'"
      ```
 4. Stelle sicher, dass die Aufgabe mit einem Konto ausgeführt wird, das Zugriff auf die Projektdateien hat.
 5. Teste die Aufgabe einmal manuell im Taskplaner.
 
 ## Ergebnisse
-- Phase 2 wird durch den Green Grid Compass Live-Fetcher realisiert
-- ENTSO-E steht als fallback-fähige Quelle für zusätzliche Daten bereit
-- Eine einheitliche Pipeline für GGC-Primärdaten und ENTSO-E-Fallback wurde implementiert
+- Phase 2 wird durch einen ENTSO-E-first Live-Fetcher realisiert
+- GGC steht als optionale Quelle für Zusatzmetriken bereit
+- Eine einheitliche Pipeline für ENTSO-E-Primärdaten und optionale GGC-Zusatzdaten wurde implementiert
 - Weiteres Daten-Cleaning für Zeitzonen und Status-/Revision-Informationen wurde ergänzt
 - Backend besitzt optionalen API-Key-Schutz und Rate-Limit-Handling für schützbare Endpunkte
 - Daten werden bei Erfolg als CSV abgelegt
@@ -76,8 +75,8 @@ Phase 2 des Green Grid Compass API-Projekts ist die Umsetzung eines Live-Fetcher
 
 ## Green Grid Compass Interface
 - TraXes-API-Dokumentation für Green Grid Compass identifiziert
-- Green Grid Compass ist jetzt primäre Quelle für CO2-Intensität und erneuerbare Anteile
-- ENTSO-E wird als Fallback eingesetzt, wenn GGC nicht alle benötigten Kennzahlen abdeckt
+- Green Grid Compass ist als optionale Zusatzquelle für CO2-Intensität und erneuerbare Anteile verfügbar
+- ENTSO-E liefert die primären Erzeugungsdaten, GGC ergänzt bei Bedarf
 - Relevante Pfade:
   - `GET /v1/ping`
   - `GET /v1/co2-intensity`

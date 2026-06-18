@@ -1,6 +1,6 @@
-# Anleitung: Green Grid Compass Tool anwenden
+# Anleitung: ENTSO-E Tool anwenden
 
-Die Anwendung kann deutlich vereinfacht werden. Für den ersten Einsatz reicht ein kurzer, direkter Ablauf.
+Die Anwendung nutzt ENTSO-E als primäre Datenquelle. Green Grid Compass bleibt optional für ergänzende Metriken verfügbar.
 
 ## Kurzfassung
 
@@ -25,7 +25,7 @@ Stelle sicher, dass installiert sind:
 cd EU-Stromdaten Tool/prototype
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn backend:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Das Backend läuft danach unter:
@@ -61,10 +61,9 @@ http://localhost:5173
 
 Danach werden dir automatisch angezeigt:
 
-- CO2-Intensität
-- Erneuerbarer Anteil
-- Rohdaten
-- Vergleichsdaten
+- ENTSO-E-Erzeugung als Standardansicht
+- Rohdaten und Vergleichsdaten für den gewählten Zeitraum
+- Optionale GGC-Metriken, falls du sie im Frontend zusätzlich nutzen willst
 - Lesezeichen und Cache-Status
 
 ## 4. Was du optional anpassen kannst
@@ -72,6 +71,7 @@ Danach werden dir automatisch angezeigt:
 - API-Key eintragen, falls das Backend ihn verlangt
 - Vergleichsmodus aktivieren
 - Lesezeichen für häufige Abfragen speichern
+- GGC nur dann aktivieren, wenn du die Zusatzmetriken brauchst
 - Backend-URL über die Umgebungsvariable VITE_BACKEND_URL festlegen
 
 ## 5. Wenn etwas nicht funktioniert

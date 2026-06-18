@@ -3,11 +3,11 @@
 **Status: abgeschlossen ✅**
 
 ## Ziel
-Phase 4 realisiert ein nutzbares React-Dashboard für das Green Grid Compass-Projekt. Es verbindet das Backend mit Live-Daten, ergänzt Vergleichs- und Cache-Mechaniken und macht das Frontend für den praktischen Einsatz vorbereiteter.
+Phase 4 realisiert ein nutzbares React-Dashboard für das Projekt. Es verbindet das Backend mit ENTSO-E-Live-Daten, ergänzt Vergleichs- und Cache-Mechaniken und hält optionale GGC-Zusatzmetriken verfügbar.
 
 ## Umgesetzte Schritte
 - Das React-Frontend in [EU-Stromdaten Tool/prototype/frontend](EU-Stromdaten Tool/prototype/frontend) wurde erweitert und ist die aktive Benutzeroberfläche.
-- Das Dashboard nutzt die Phase-3-API-Endpunkte für Live-Daten und Rohdaten.
+- Das Dashboard nutzt die Phase-3-API-Endpunkte für ENTSO-E-Live-Daten und optionale GGC-Rohdaten.
 - Mobile und responsive Layout-Anpassungen wurden ergänzt, sodass die Bedienung auf kleinen Displays stabiler ist.
 - Historische Vergleiche und Zeitreihen-Vergleiche sind jetzt über ein Vergleichsfenster und Vergleichsvisualisierung verfügbar.
 - API-Key-Handling wurde abgesichert: Schlüssel können optional für die Sitzung gespeichert werden, ohne die Konfiguration dauerhaft preiszugeben.
@@ -15,7 +15,7 @@ Phase 4 realisiert ein nutzbares React-Dashboard für das Green Grid Compass-Pro
 - Eine erste produktionsnahe CI-Pipeline für das Frontend wurde vorbereitet.
 
 ## Ergebnis
-- Interaktive Charts für CO2-Intensität und erneuerbare Anteile
+- Interaktive Charts für ENTSO-E-Erzeugung und optionale GGC-Metriken
 - KPI-Karten, Rohdatenansicht und Auto-Refresh
 - Vergleichsmodus mit historischem Vorzeitraum
 - Persistenz von Konfigurationen, Cache-Status und Lesezeichen
@@ -24,7 +24,7 @@ Phase 4 realisiert ein nutzbares React-Dashboard für das Green Grid Compass-Pro
 ## Nutzung
 1. Backend starten:
    ```powershell
-   uvicorn EU-Stromdaten Tool.prototype.backend:app --reload --host 0.0.0.0 --port 8000
+   uvicorn EU-Stromdaten Tool.prototype.backend_api:app --reload --host 0.0.0.0 --port 8000
    ```
 2. Ins Frontend wechseln:
    ```powershell

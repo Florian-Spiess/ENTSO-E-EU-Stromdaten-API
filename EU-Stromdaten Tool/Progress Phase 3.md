@@ -3,19 +3,19 @@
 **Status: Phase 3 abgeschlossen** ✅
 
 ## Ziel
-Phase 3 des Green Grid Compass-Projekts ist die Umsetzung eines produktionsnahen FastAPI-Backends. Dieses Backend stellt GGC-Daten und ENTSO-E-Fallbackdaten als REST-API zur Verfügung, bietet Health-Checks, eine Metrik-Liste und eine einheitliche Zugriffsoberfläche für Frontend/Dashboard-Clients.
+Phase 3 des Projekts ist die Umsetzung eines produktionsnahen FastAPI-Backends. Dieses Backend stellt ENTSO-E-Primärdaten und optionale GGC-Zusatzdaten als REST-API zur Verfügung, bietet Health-Checks, eine Metrik-Liste und eine einheitliche Zugriffsoberfläche für Frontend/Dashboard-Clients.
 
 ## Umsetzung
 - `EU-Stromdaten Tool/prototype/backend_api.py` wurde erweitert auf Phase 3
 - Das Backend stellt nun folgende Endpunkte bereit:
   - `/` - zentrale Service-Info
   - `/health` - Gesundheitsstatus mit aktuellem Zeitstempel
-  - `/ggc/metrics` - Liste der unterstützten GGC-Metriken
-  - `/ggc/{metric}` - generischer Endpunkt für GGC-Daten
-  - `/ggc/co2-intensity` - expliziter CO2-Intensitäts-Endpunkt
-  - `/ggc/renewable-share` - expliziter erneuerbarer Anteil
-  - `/entsoe/generation` - ENTSO-E-Fallback für Erzeugungsdaten
-  - `/unified` - vereinheitlichte Daten von GGC und optional ENTSO-E
+  - `/entsoe/generation` - ENTSO-E-Primärdaten für Erzeugungsdaten
+  - `/ggc/metrics` - optionale Liste der unterstützten GGC-Metriken
+  - `/ggc/{metric}` - optionale GGC-Daten
+  - `/ggc/co2-intensity` - optionale CO2-Intensität
+  - `/ggc/renewable-share` - optionale erneuerbare Anteile
+  - `/unified` - vereinheitlichte Daten von ENTSO-E und optional GGC
 
 - `EU-Stromdaten Tool/prototype/ggc_data_fetcher.py` wurde erweitert:
   - Generischer `fetch_ggc_metric(...)`-Zugriff für mehrere Kennzahlen
@@ -29,18 +29,19 @@ Phase 3 des Green Grid Compass-Projekts ist die Umsetzung eines produktionsnahen
 - OpenAPI-Dokumentation wird automatisch über `/docs` verfügbar sein
 
 ## Environment-Variablen
-- `GGC_API_BASE_URL`
-- `GGC_API_KEY`
-- `GGC_OAUTH_TOKEN_URL`
-- `GGC_CLIENT_ID`
-- `GGC_CLIENT_SECRET`
-- `GGC_SCOPE`
 - `ENTSOE_API_KEY`
 - `BACKEND_API_KEY`
+- optional für GGC:
+  - `GGC_API_BASE_URL`
+  - `GGC_API_KEY`
+  - `GGC_OAUTH_TOKEN_URL`
+  - `GGC_CLIENT_ID`
+  - `GGC_CLIENT_SECRET`
+  - `GGC_SCOPE`
 
 ## Ausführung
 ```powershell
-uvicorn EU-Stromdaten Tool.prototype.backend:app --reload --host 0.0.0.0 --port 8000
+uvicorn EU-Stromdaten Tool.prototype.backend_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Beispielaufrufe:
