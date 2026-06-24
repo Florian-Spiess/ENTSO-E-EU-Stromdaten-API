@@ -1,8 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 
-const DEFAULT_BACKEND = import.meta.env?.VITE_BACKEND_URL || 'http://127.0.0.1:9000';
+const DEFAULT_BACKEND = 'http://localhost:8000';
 const DEFAULT_ZONE = '10Y1001A1001A83F';
-const DEFAULT_PARTNER_ZONE = '10YFR-RTE------C';
+const AVAILABLE_COUNTRIES = [
+  { label: 'Deutschland', zone: '10Y1001A1001A83F' },
+  { label: 'Frankreich', zone: '10YFR-RTE------C' },
+  { label: 'Niederlande', zone: '10YNL----------L' },
+  { label: 'Belgien', zone: '10YBE----------2' },
+  { label: 'Oesterreich', zone: '10YAT-APG------L' },
+  { label: 'Schweiz', zone: '10YCH-SWISSGRIDZ' },
+  { label: 'Spanien', zone: '10YES-REE------0' },
+  { label: 'Portugal', zone: '10YPT-REN------W' },
+  { label: 'Polen', zone: '10YPL-AREA-----S' },
+  { label: 'Tschechien', zone: '10YCZ-CEPS-----N' },
+  { label: 'Slowakei', zone: '10YSK-SEPS-----K' },
+  { label: 'Ungarn', zone: '10YHU-MAVIR----U' },
+  { label: 'Rumaenien', zone: '10YRO-TEL------P' },
+  { label: 'Slowenien', zone: '10YSI-ELES-----O' },
+  { label: 'Kroatien', zone: '10YHR-HEP------M' },
+  { label: 'Daenemark DK1', zone: '10YDK-1--------W' },
+  { label: 'Daenemark DK2', zone: '10YDK-2--------M' },
+  { label: 'Finnland', zone: '10YFI-1--------U' },
+  { label: 'Estland', zone: '10Y1001A1001A39I' },
+  { label: 'Lettland', zone: '10YLV-1001A00074' },
+  { label: 'Litauen', zone: '10YLT-1001A0008Q' },
+  { label: 'Irland', zone: '10YIE-1001A00010' },
+];
 const now = new Date();
 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 const DEFAULT_START = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
@@ -27,10 +50,6 @@ function getDefaultUtcRange() {
 const ENTSOE_DATASETS = {
   generation: { label: 'Erzeugung', unit: 'MW' },
   consumption: { label: 'Verbrauch', unit: 'MW' },
-  flows: { label: 'Cross-Border-Flows', unit: 'MW' },
-  prices: { label: 'Day-Ahead-Preise', unit: 'EUR/MWh' },
-  installedCapacity: { label: 'Installierte Leistung', unit: 'MW' },
-  generationPerPlant: { label: 'Erzeugung pro Anlage', unit: 'MW' },
 };
 
 const ENTSOE_DATASET_OPTIONS = Object.keys(ENTSOE_DATASETS).map((metric) => ({
@@ -38,7 +57,7 @@ const ENTSOE_DATASET_OPTIONS = Object.keys(ENTSOE_DATASETS).map((metric) => ({
   description: ENTSOE_DATASETS[metric].label,
 }));
 
-const AGGREGATED_TOTAL_METRICS = new Set(['generation', 'installedCapacity', 'generationPerPlant']);
+const AGGREGATED_TOTAL_METRICS = new Set(['generation']);
 
 const GENERATION_TECHNOLOGY_LABELS = {
   B01: 'Biomasse',
@@ -65,17 +84,32 @@ const GENERATION_TECHNOLOGY_LABELS = {
 
 const ZONE_LABELS = {
   '10Y1001A1001A83F': 'Deutschland',
-  '10Y1001A1001A82H': 'Deutschland',
   '10YFR-RTE------C': 'Frankreich',
+  '10YNL----------L': 'Niederlande',
+  '10YBE----------2': 'Belgien',
+  '10YAT-APG------L': 'Oesterreich',
+  '10YCH-SWISSGRIDZ': 'Schweiz',
+  '10YES-REE------0': 'Spanien',
+  '10YPT-REN------W': 'Portugal',
+  '10YPL-AREA-----S': 'Polen',
+  '10YCZ-CEPS-----N': 'Tschechien',
+  '10YSK-SEPS-----K': 'Slowakei',
+  '10YHU-MAVIR----U': 'Ungarn',
+  '10YRO-TEL------P': 'Rumaenien',
+  '10YSI-ELES-----O': 'Slowenien',
+  '10YHR-HEP------M': 'Kroatien',
+  '10YDK-1--------W': 'Daenemark DK1',
+  '10YDK-2--------M': 'Daenemark DK2',
+  '10YFI-1--------U': 'Finnland',
+  '10Y1001A1001A39I': 'Estland',
+  '10YLV-1001A00074': 'Lettland',
+  '10YLT-1001A0008Q': 'Litauen',
+  '10YIE-1001A00010': 'Irland',
 };
 
 const ENTSOE_REQUESTS = {
-  generation: (zone, start, end, partnerZone) => `/entsoe/generation?zone=${zone}&start=${start}&end=${end}`,
-  consumption: (zone, start, end, partnerZone) => `/entsoe/consumption?zone=${zone}&start=${start}&end=${end}`,
-  flows: (zone, start, end, partnerZone) => `/entsoe/flows?zone=${zone}&zone_to=${partnerZone}&start=${start}&end=${end}`,
-  prices: (zone, start, end, partnerZone) => `/entsoe/prices?zone=${zone}&start=${start}&end=${end}`,
-  installedCapacity: (zone, start, end, partnerZone) => `/entsoe/installed-capacity?zone=${zone}&start=${start}&end=${end}`,
-  generationPerPlant: (zone, start, end, partnerZone) => `/entsoe/generation-per-plant?zone=${zone}&start=${start}&end=${end}`,
+  generation: (zone, start, end) => `/entsoe/generation?zone=${zone}&start=${start}&end=${end}`,
+  consumption: (zone, start, end) => `/entsoe/consumption?zone=${zone}&start=${start}&end=${end}`,
 };
 
 function normalizeBackendUrl(url) {
@@ -84,7 +118,7 @@ function normalizeBackendUrl(url) {
   if (trimmed === '/api' || trimmed === 'api') {
     return DEFAULT_BACKEND;
   }
-  if (/^https?:\/\/(?:localhost|127\.0\.0\.1):8000$/i.test(trimmed)) {
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1):9000$/i.test(trimmed)) {
     return DEFAULT_BACKEND;
   }
   return trimmed;
@@ -194,7 +228,7 @@ function ChartTile({ title, subtitle, points, comparisonPoints, comparisonLabel,
   const hasData = Boolean(points?.length || comparisonPoints?.length);
   const latestValue = points?.length ? points[points.length - 1].y : null;
   const pointCount = (points?.length || 0) + (comparisonPoints?.length || 0);
-  const showGraphic = !String(subtitle || '').toLowerCase().includes('flows');
+  const showGraphic = true;
 
   return (
     <div className="chart-tile">
@@ -332,13 +366,27 @@ export default function App() {
   const [backendUrl, setBackendUrl] = useState(normalizeBackendUrl(DEFAULT_BACKEND));
   const [apiKey, setApiKey] = useState('changeme');
   const [zone, setZone] = useState(DEFAULT_ZONE);
-  const [partnerZone, setPartnerZone] = useState(DEFAULT_PARTNER_ZONE);
   const [start, setStart] = useState(DEFAULT_START);
   const [end, setEnd] = useState(DEFAULT_END);
   const [rememberApiKey, setRememberApiKey] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [status, setStatus] = useState('Bereit. Bitte Backend starten.');
   const [error, setError] = useState(null);
   const [metrics, setMetrics] = useState([]);
+
+  const updateYearInTimestamp = (timestamp, newYear) => {
+    if (!timestamp || timestamp.length < 7) return timestamp;
+    const yearStr = String(newYear).padStart(4, '0');
+    return yearStr + timestamp.slice(4);
+  };
+
+  const handleYearChange = (newYear) => {
+    setSelectedYear(newYear);
+    const updatedStart = updateYearInTimestamp(start, newYear);
+    const updatedEnd = updateYearInTimestamp(end, newYear);
+    setStart(updatedStart);
+    setEnd(updatedEnd);
+  };
   const [selectedMetric, setSelectedMetric] = useState('generation');
   const [co2Data, setCo2Data] = useState([]);
   const [comparisonCo2Data, setComparisonCo2Data] = useState([]);
@@ -369,7 +417,6 @@ export default function App() {
     if (storedConfig?.version === CONFIG_VERSION) {
       setBackendUrl(normalizeBackendUrl(storedConfig.backendUrl || DEFAULT_BACKEND));
       setZone(storedConfig.zone || DEFAULT_ZONE);
-      setPartnerZone(storedConfig.partnerZone || DEFAULT_PARTNER_ZONE);
       setSelectedMetric(storedConfig.selectedMetric || 'generation');
       setStart(storedConfig.start || DEFAULT_START);
       setEnd(storedConfig.end || DEFAULT_END);
@@ -378,7 +425,6 @@ export default function App() {
       const defaultRange = getDefaultUtcRange();
       setBackendUrl(DEFAULT_BACKEND);
       setZone(DEFAULT_ZONE);
-      setPartnerZone(DEFAULT_PARTNER_ZONE);
       setSelectedMetric('generation');
       setStart(defaultRange.start);
       setEnd(defaultRange.end);
@@ -414,7 +460,6 @@ export default function App() {
       version: CONFIG_VERSION,
       backendUrl: normalizeBackendUrl(backendUrl),
       zone,
-      partnerZone,
       start,
       end,
       selectedMetric,
@@ -427,7 +472,7 @@ export default function App() {
     } else {
       window.sessionStorage.removeItem(API_KEY_KEY);
     }
-  }, [backendUrl, zone, partnerZone, start, end, selectedMetric, rememberApiKey, apiKey]);
+  }, [backendUrl, zone, start, end, selectedMetric, rememberApiKey, apiKey]);
 
   const headers = apiKey ? { 'Content-Type': 'application/json', 'x-api-key': apiKey } : { 'Content-Type': 'application/json' };
 
@@ -493,9 +538,8 @@ export default function App() {
 
   const buildEntsoeDatasetRequest = (metric, currentStart, currentEnd) => {
     const encodedZone = encodeURIComponent(zone);
-    const encodedPartnerZone = encodeURIComponent(partnerZone);
     const requestBuilder = ENTSOE_REQUESTS[metric] || ENTSOE_REQUESTS.generation;
-    return requestBuilder(encodedZone, encodeURIComponent(currentStart), encodeURIComponent(currentEnd), encodedPartnerZone);
+    return requestBuilder(encodedZone, encodeURIComponent(currentStart), encodeURIComponent(currentEnd));
   };
 
   const fetchEntsoeDataset = async (metric, currentStart, currentEnd, compareStart = null, compareEnd = null) => {
@@ -641,7 +685,7 @@ export default function App() {
         rawData: currentRawData,
         dataLabel: `ENTSO-E ${meta.label} (aktueller Zeitraum)`,
         lastFetch: fetchedAt,
-        cacheInfo: { zone, partnerZone, start, end, selectedMetric, comparisonEnabled, comparisonWindowHours, fetchedAt },
+        cacheInfo: { zone, start, end, selectedMetric, comparisonEnabled, comparisonWindowHours, fetchedAt },
       };
       persistSnapshot(snapshot);
       setStatus(comparisonEnabled ? `ENTSO-E-${meta.label} erfolgreich geladen. Vergleichszeitraum ${comparisonWindowHours}h aktiv.` : `ENTSO-E-${meta.label} erfolgreich geladen.`);
@@ -770,8 +814,8 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="hero">
-        <h1>ENTSO-E React Dashboard</h1>
-        <p>Live-Daten-Frontend mit ENTSO-E als primärer Quelle, Vergleich, Cache und Lesezeichen.</p>
+        <h1>ENTSO-E</h1>
+        <p>Live EU-Stromdaten für Erzeugung und Verbrauch</p>
       </header>
       <main>
         <section className="panel">
@@ -782,16 +826,24 @@ export default function App() {
               <input value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} />
             </label>
             <label>
+              Jahr
+              <select value={selectedYear} onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}>
+                {Array.from({length: new Date().getFullYear() - 2014}, (_, i) => 2015 + i).reverse().map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </label>
+            <label>
               Backend API-Key
               <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Optional" />
             </label>
             <label>
-              Zone
-              <input value={zone} onChange={(e) => setZone(e.target.value)} />
-            </label>
-            <label>
-              Zielzone für Flows
-              <input value={partnerZone} onChange={(e) => setPartnerZone(e.target.value)} placeholder="z. B. FR" />
+              Land
+              <select value={zone} onChange={(e) => setZone(e.target.value)}>
+                {AVAILABLE_COUNTRIES.map((country) => (
+                  <option key={country.zone} value={country.zone}>{country.label}</option>
+                ))}
+              </select>
             </label>
             <label>
               Startzeitpunkt
@@ -988,27 +1040,14 @@ export default function App() {
                 </div>
               </div>
               {selectedExplorerSeries.length ? (
-                explorerMetric === 'flows' ? (
-                  <div className="chart-summary">
-                    <div className="chart-summary-row">
-                      <span>Datenpunkte</span>
-                      <strong>{selectedExplorerSeries.length}</strong>
-                    </div>
-                    <div className="chart-summary-row">
-                      <span>Hinweis</span>
-                      <strong>Diese Grafik wird ausgeblendet, weil sie unübersichtlich war.</strong>
-                    </div>
-                  </div>
-                ) : (
-                  <PlotlyChart
-                    key={explorerMetric}
-                    points={selectedExplorerSeries}
-                    comparisonPoints={selectedExplorerComparisonSeries}
-                    comparisonLabel={`Vorheriger ${comparisonWindowHours}h-Zeitraum`}
-                    title={`ENTSO-E ${selectedExplorerMeta.label} - ${getZoneLabel(zone)}`}
-                    yLabel={selectedExplorerMeta.unit}
-                  />
-                )
+                <PlotlyChart
+                  key={explorerMetric}
+                  points={selectedExplorerSeries}
+                  comparisonPoints={selectedExplorerComparisonSeries}
+                  comparisonLabel={`Vorheriger ${comparisonWindowHours}h-Zeitraum`}
+                  title={`ENTSO-E ${selectedExplorerMeta.label} - ${getZoneLabel(zone)}`}
+                  yLabel={selectedExplorerMeta.unit}
+                />
               ) : (
                 <div className="chart-empty-state">
                   <strong>Keine Daten für diesen Datensatz</strong>

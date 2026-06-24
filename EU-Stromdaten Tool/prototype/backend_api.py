@@ -204,27 +204,6 @@ def entsoe_generation(
     return df.to_dict(orient="records")
 
 
-@app.get("/entsoe/installed-capacity")
-@limiter.limit("5/minute")
-def entsoe_installed_capacity(
-    request: Request,
-    _api_key_valid: None = Depends(verify_backend_api_key),
-    zone: str = Query("10Y1001A1001A83F", description="ENTSO-E bidding zone code"),
-    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
-    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
-):
-    try:
-        start_ts, end_ts = make_time_range(start, end)
-        token = os.getenv("ENTSOE_API_KEY")
-        if not token:
-            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
-        df = entsoe_fetcher.fetch_entsoe_installed_generation_capacity(zone, start_ts, end_ts, token)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    return df.to_dict(orient="records")
-
-
 @app.get("/entsoe/generation-per-plant")
 @limiter.limit("5/minute")
 def entsoe_generation_per_plant(
@@ -261,28 +240,6 @@ def entsoe_consumption(
         if not token:
             raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
         df = entsoe_fetcher.fetch_entsoe_consumption(zone, start_ts, end_ts, token)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    return df.to_dict(orient="records")
-
-
-@app.get("/entsoe/flows")
-@limiter.limit("5/minute")
-def entsoe_flows(
-    request: Request,
-    _api_key_valid: None = Depends(verify_backend_api_key),
-    zone: str = Query("10Y1001A1001A63L", description="Source ENTSO-E bidding zone code"),
-    zone_to: str = Query("FR", description="Target ENTSO-E bidding zone code"),
-    start: Optional[str] = Query(None, description="Startzeitpunkt im ISO-Format"),
-    end: Optional[str] = Query(None, description="Endzeitpunkt im ISO-Format"),
-):
-    try:
-        start_ts, end_ts = make_time_range(start, end)
-        token = os.getenv("ENTSOE_API_KEY")
-        if not token:
-            raise RuntimeError("ENTSOE_API_KEY ist nicht gesetzt.")
-        df = entsoe_fetcher.fetch_entsoe_crossborder_flows(zone, zone_to, start_ts, end_ts, token)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
