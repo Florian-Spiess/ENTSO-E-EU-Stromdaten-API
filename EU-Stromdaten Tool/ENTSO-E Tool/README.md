@@ -1,23 +1,40 @@
-# Prototype: Generation Mix Stacked Area
+# ENTSO-E Tool
 
-Kurzes Prototype zum Visualisieren eines Erzeugungsmixes aus Beispieldaten.
+Lokales Tool zum Abruf und zur Visualisierung von EU-Stromdaten mit Python-Backend und React-Frontend.
 
-Voraussetzungen
-- Python 3.8+
-- virtuelle Umgebung empfohlen
+## Schnellstart
 
-Installation
+### Voraussetzungen
+- Python 3.10 oder neuer
+- Node.js 18 oder neuer
+- ENTSOE API Key (in der Backend-Umgebungsdatei)
 
+### 1. Backend einrichten und starten
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+cd "EU-Stromdaten Tool/ENTSO-E Tool"
 pip install -r requirements.txt
+copy .env.example .env
 ```
 
-Ausführen
+Trage danach in der Datei .env mindestens ENTSOE_API_KEY ein (dein persoenlicher ENTSO-E API Key).
 
 ```powershell
-python plot_generation.py
+uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Ergebnis: `stacked_area.html` im `prototype`-Ordner öffnen.
+Backend laeuft dann unter: http://localhost:8000
+
+### 2. Frontend einrichten und starten
+In einem zweiten Terminal:
+
+```powershell
+cd "EU-Stromdaten Tool/ENTSO-E Tool/frontend"
+npm install
+copy .env.example .env
+npm run dev
+```
+
+Frontend laeuft dann unter: http://localhost:5173
+
+### 3. Tool im Browser oeffnen
+Oeffne http://localhost:5173. Das Frontend ruft die Daten ueber das lokale Backend unter http://localhost:8000 ab.

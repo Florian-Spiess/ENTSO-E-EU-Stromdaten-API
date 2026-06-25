@@ -22,16 +22,17 @@ Das Ergebnis ist ein durchgängiges Tool von der Datenerfassung bis zur Visualis
 ### Voraussetzungen
 - Python 3.10 oder neuer
 - Node.js 18 oder neuer
-- ENTSOE API Key (in der Backend-Umgebungsdatei)
+- ENTSOE API Key 
+(bcfc03b2-2939-4ec2-b4b5-5d1a257083b2)
 
 ### 1. Backend einrichten und starten
 ```powershell
-cd EU-Stromdaten Tool/prototype
+cd EU-Stromdaten Tool/ENTSO-E Tool
 pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Trage danach in der Datei `.env` mindestens `ENTSOE_API_KEY` ein. (bcfc03b2-2939-4ec2-b4b5-5d1a257083b2)
+Trage danach in der Datei `.env` mindestens `ENTSOE_API_KEY` ein.
 
 ```powershell
 uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
@@ -43,7 +44,7 @@ Backend läuft dann unter: `http://localhost:8000`
 In einem zweiten Terminal:
 
 ```powershell
-cd EU-Stromdaten Tool/prototype/frontend
+cd EU-Stromdaten Tool/ENTSO-E Tool/frontend
 npm install
 copy .env.example .env
 npm run dev
