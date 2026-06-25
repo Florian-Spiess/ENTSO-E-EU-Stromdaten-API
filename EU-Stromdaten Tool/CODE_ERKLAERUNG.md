@@ -9,10 +9,8 @@ Eine anschauliche Erklärung der wichtigsten Schritte im ENTSO-E Stromdaten-Tool
 ```mermaid
 graph LR
     A["📊 ENTSO-E API<br/>(Primärquelle)"] -->|fetch_entsoe_generation| B["🐍 entsoe_data_fetcher.py<br/>(Daten abholen)"]
-    C["🟢 GGC API<br/>(Optional)"] -->|fetch_ggc_metric| D["🐍 ggc_data_fetcher.py<br/>(Zusatzmetriken)"]
     
     B -->|DataFrame| E["🔀 unified_data_pipeline.py<br/>(Vereinheitlichung)"]
-    D -->|DataFrame| E
     
     E -->|Normalisierte Daten| F["🚀 backend_api.py<br/>(FastAPI REST-Endpunkte)"]
     
@@ -86,50 +84,15 @@ def _parse_entsoe_xml(xml_text: str, ...) -> pd.DataFrame:
 
 ---
 
-## 2️⃣ Schritt 2: Optionale GGC-Zusatzmetriken
 
-### 📝 Datei: `ggc_data_fetcher.py`
-
-**Aufgabe:** Zusätzliche Kennzahlen von Green Grid Compass holen (z. B. CO2-Intensität).
-
-```python
-def fetch_ggc_metric(
-    metric: str,                  # z. B. "co2_intensity"
-    zone: str,                    # z. B. "DE"
-    start: datetime,
-    end: datetime
-) -> pd.DataFrame:
-    
-    # GGC-API-Endpoint auswählen
-    api_path = GGC_METRIC_PATHS[metric]  # z. B. "/v1/co2-intensity"
-    
-    # OAuth2 Token beschaffen (falls nötig)
-    token = _fetch_oauth_token(...)
-    
-    # HTTP-Request an GGC senden
-    url = f"{GGC_BASE_URL}{api_path}"
-    response = requests.get(url, params={
-        "area": zone,
-        "from": start.isoformat(),
-        "to": end.isoformat()
-    }, headers={"Authorization": f"Bearer {token}"})
-    
-    # JSON parsen und normalisieren
-    data = response.json()
-    df = pd.DataFrame(data)
-    df["metric"] = metric
-    df["source"] = "GGC"
-    
-    return df
-```
 
 ---
 
-## 3️⃣ Schritt 3: Daten vereinheitlichen
+## 2️⃣ Schritt 2: Daten vereinheitlichen
 
 ### 📝 Datei: `unified_data_pipeline.py`
 
-**Aufgabe:** ENTSO-E + GGC Daten in ein gemeinsames Format bringen.
+**Aufgabe:** ENTSO-E-Daten in ein gemeinsames Format bringen.
 
 ```python
 def normalize_df(
@@ -167,16 +130,15 @@ def normalize_df(
     return df[["timestamp", "zone", "metric", "value", "source", "unit"]]
 ```
 
-**Ergebnis:** Alle Daten (egal ob ENTSO-E oder GGC) folgen diesem Schema:
+**Ergebnis:** Alle Daten folgen diesem Schema:
 ```
 timestamp           zone   metric           value   source   unit
 2026-06-25 10:00   DE     generation       1500    ENTSO-E  MW
-2026-06-25 10:00   DE     co2_intensity    245     GGC      g/kWh
 ```
 
 ---
 
-## 4️⃣ Schritt 4: REST-API bereitstellen
+## 3️⃣ Schritt 3: REST-API bereitstellen
 
 ### 📝 Datei: `backend_api.py`
 
@@ -261,7 +223,7 @@ def entsoe_generation(
 
 ---
 
-## 5️⃣ Schritt 5: Frontend lädt und zeigt Daten
+## 4️⃣ Schritt 4: Frontend lädt und zeigt Daten
 
 ### 📝 Datei: `frontend/src/App.jsx`
 
@@ -430,34 +392,6 @@ Frontend:
 Benutzer sieht interaktives Chart im Browser ✅
 ```
 
-### Beispiel B: Benutzer aktiviert GGC-Zusatzmetriken
-
-```
-Benutzer klickt auf "Metrik: CO2-Intensität"
-         ↓
-Frontend setzt neuen Query-Parameter:
-  HTTP GET /ggc/co2-intensity?zone=DE&start=...&end=...
-         ↓
-Backend backend_api.py:
-  ggc_fetcher.fetch_ggc_metric("co2_intensity", "DE", ...) aufrufen
-         ↓
-ggc_data_fetcher.py:
-  1. OAuth2-Token beschaffen (falls nötig)
-  2. HTTP GET an https://api.greengridcompass.eu/v1/co2-intensity
-  3. JSON-Response parsen
-  4. In DataFrame umwandeln
-  5. Zurück an backend_api.py
-         ↓
-Backend:
-  1. DataFrame zu JSON wandeln
-  2. HTTP 200 mit JSON-Daten zurückgeben
-         ↓
-Frontend:
-  1. Neue Metrik-Daten empfangen
-  2. Als zusätzliche Linie im Chart anzeigen
-         ↓
-Benutzer sieht CO2-Intensität überlagert auf dem Chart ✅
-```
 
 ---
 
@@ -466,7 +400,6 @@ Benutzer sieht CO2-Intensität überlagert auf dem Chart ✅
 | Datei | Aufgabe | Input | Output |
 |-------|---------|-------|--------|
 | `entsoe_data_fetcher.py` | ENTSO-E-API aufrufen | Zeitbereich, Zone, Token | DataFrame (15-min Auflösung) |
-| `ggc_data_fetcher.py` | GGC-API aufrufen (optional) | Metrik, Zone, Zeitbereich | DataFrame (1-h Auflösung) |
 | `unified_data_pipeline.py` | Daten normalisieren | DataFrames von verschiedenen Quellen | Einheitlicher DataFrame |
 | `backend_api.py` | REST-API bereitstellen | HTTP-Requests vom Frontend | JSON-Response |
 | `daily_data_sync.py` | Täglicher automatischer Abruf | (keine) | CSV-Export der Daten |
